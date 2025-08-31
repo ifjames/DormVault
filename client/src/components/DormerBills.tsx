@@ -58,8 +58,6 @@ export default function DormerBills() {
     queryFn: async () => {
       if (!dormerData?.id) return [];
       
-      console.log("Fetching bills for dormer ID:", dormerData.id);
-      
       const billsData: Bill[] = [];
       
       // Fetch bill shares for electricity bills
@@ -67,26 +65,15 @@ export default function DormerBills() {
       const billSharesQuery = query(billSharesRef, where("dormerId", "==", dormerData.id));
       const billSharesSnapshot = await getDocs(billSharesQuery);
       
-      console.log("Found bill shares:", billSharesSnapshot.docs.length);
-      billSharesSnapshot.docs.forEach(doc => {
-        console.log("Bill share:", doc.id, doc.data());
-      });
-      
       for (const shareDoc of billSharesSnapshot.docs) {
         try {
           const shareData = shareDoc.data();
-          
-          console.log("Processing bill share - Fetching bill with ID:", shareData.billId);
           
           // Get the associated bill using doc() instead of query
           const billDocRef = doc(db, COLLECTIONS.BILLS, shareData.billId);
           const billDocSnap = await getDoc(billDocRef);
           
-          console.log("Bill document exists:", billDocSnap.exists());
-          if (billDocSnap.exists()) {
-            console.log("Bill data:", billDocSnap.data());
-          } else {
-            console.warn("❌ Bill document not found for ID:", shareData.billId);
+          if (!billDocSnap.exists()) {
             continue; // Skip this iteration if bill doesn't exist
           }
           
@@ -103,13 +90,17 @@ export default function DormerBills() {
           const paymentsSnapshot = await getDocs(paymentsQuery);
           
           const isPaid = !paymentsSnapshot.empty;
-          const isOverdue = new Date() > new Date(billData.endDate.toDate());
+          
+          // Handle both string and timestamp date formats
+          const startDate = typeof billData.startDate === 'string' ? new Date(billData.startDate) : new Date(billData.startDate.toDate());
+          const endDate = typeof billData.endDate === 'string' ? new Date(billData.endDate) : new Date(billData.endDate.toDate());
+          const isOverdue = new Date() > endDate;
           
           billsData.push({
             id: shareDoc.id,
-            title: `Electricity Bill - ${new Date(billData.startDate.toDate()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+            title: `Electricity Bill - ${startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
             amount: parseFloat(shareData.shareAmount),
-            dueDate: billData.endDate.toDate().toISOString().split('T')[0],
+            dueDate: endDate.toISOString().split('T')[0],
             status: isPaid ? "paid" : (isOverdue ? "overdue" : "pending"),
             description: `Your share: ${shareData.daysStayed} days stayed`,
             type: "electricity" as const
