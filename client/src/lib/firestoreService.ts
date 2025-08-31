@@ -11,7 +11,7 @@ import {
   where,
   serverTimestamp 
 } from "firebase/firestore";
-import { db, COLLECTIONS } from "./firebase";
+import { db, COLLECTIONS, createUserWithEmail } from "./firebase";
 
 // Dormer operations
 export const dormersService = {
@@ -28,12 +28,28 @@ export const dormersService = {
   },
 
   async create(dormerData: any) {
-    const docRef = await addDoc(collection(db, COLLECTIONS.DORMERS), {
-      ...dormerData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-    return { id: docRef.id, ...dormerData };
+    try {
+      // First create Firebase Auth user if email and password are provided
+      if (dormerData.email && dormerData.password) {
+        await createUserWithEmail(dormerData.email, dormerData.password);
+      }
+      
+      // Then create the dormer record in Firestore (without password)
+      const { password, ...dormerDataWithoutPassword } = dormerData;
+      const docRef = await addDoc(collection(db, COLLECTIONS.DORMERS), {
+        ...dormerDataWithoutPassword,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      
+      return { id: docRef.id, ...dormerDataWithoutPassword };
+    } catch (error: any) {
+      // If Firebase Auth user creation fails, throw a meaningful error
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('An account with this email already exists');
+      }
+      throw error;
+    }
   },
 
   async update(id: string, updates: any) {

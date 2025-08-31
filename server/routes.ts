@@ -92,7 +92,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = insertDormerSchema.parse(dormerData);
       const dormer = await storage.createDormerWithUser({ ...validatedData, password });
-      res.json(dormer);
+      
+      // Return success message indicating Firebase user should be created on frontend
+      res.json({ 
+        ...dormer, 
+        firebaseRequired: true,
+        message: "Dormer created. Please create Firebase user on frontend." 
+      });
     } catch (error) {
       console.error("Error creating dormer:", error);
       res.status(400).json({ message: "Failed to create dormer" });
