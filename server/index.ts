@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { createServer } from "http";
 import { setupVite, serveStatic, log } from "./vite";
+import { registerRoutes } from "./routes";
 
 const app = express();
 app.use(express.json());
@@ -36,14 +36,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Simple health check endpoint
+// Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running with Firebase/Firestore only' });
-});
-
-// Fallback for any other API routes
-app.use('/api/*', (req, res) => {
-  res.status(404).json({ message: 'API endpoint not found. Using Firebase/Firestore on frontend.' });
+  res.json({ status: 'ok', message: 'Server running - Firebase handles all data operations on frontend' });
 });
 
 (async () => {
@@ -55,11 +50,8 @@ app.use('/api/*', (req, res) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  // Create HTTP server first
-  const server = createServer(app);
+  // Register Firebase-aware routes
+  const server = await registerRoutes(app);
 
   if (app.get("env") === "development") {
     await setupVite(app, server);
