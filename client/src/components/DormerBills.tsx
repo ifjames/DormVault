@@ -262,11 +262,11 @@ export default function DormerBills() {
               allBills.map((bill) => (
               <div
                 key={bill.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors gap-4"
               >
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-4 min-w-0 flex-1">
                   {getStatusIcon(bill.status)}
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <div className="font-medium">{bill.title}</div>
                     <div className="text-sm text-muted-foreground">{bill.description}</div>
                     <div className="flex items-center space-x-2 mt-1">
@@ -278,8 +278,8 @@ export default function DormerBills() {
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-4">
-                  <div className="text-right">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 sm:shrink-0">
+                  <div className="text-left sm:text-right">
                     <div className="font-bold text-lg">₱{bill.amount.toFixed(2)}</div>
                     <Badge className={getStatusColor(bill.status)}>
                       {bill.status.charAt(0).toUpperCase() + bill.status.slice(1)}
@@ -287,19 +287,19 @@ export default function DormerBills() {
                   </div>
                   
                   {bill.status === "pending" && (
-                    <Button size="sm" data-testid={`pay-bill-${bill.id}`}>
+                    <Button size="sm" data-testid={`pay-bill-${bill.id}`} className="w-full sm:w-auto">
                       Pay Now
                     </Button>
                   )}
                   
                   {bill.status === "overdue" && (
-                    <Button size="sm" variant="destructive" data-testid={`pay-overdue-${bill.id}`}>
+                    <Button size="sm" variant="destructive" data-testid={`pay-overdue-${bill.id}`} className="w-full sm:w-auto">
                       Pay Overdue
                     </Button>
                   )}
                   
                   {bill.status === "paid" && (
-                    <Button size="sm" variant="outline" disabled>
+                    <Button size="sm" variant="outline" disabled className="w-full sm:w-auto">
                       Paid
                     </Button>
                   )}
