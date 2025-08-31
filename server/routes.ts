@@ -12,12 +12,12 @@ import {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Using Firebase auth on frontend only
 
-  // Auth routes
+  // Auth routes - simplified for Firebase auth
   app.get('/api/auth/user', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      // Since we're using Firebase auth on frontend, just return a simple response
+      // In production, you would verify the Firebase token here
+      res.json({ message: "Use Firebase authentication on frontend" });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
