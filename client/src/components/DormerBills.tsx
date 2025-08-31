@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -5,49 +7,128 @@ import { CreditCard, Calendar, DollarSign, AlertCircle, CheckCircle } from "luci
 
 interface Bill {
   id: string;
-  title: string;
-  amount: number;
-  dueDate: string;
+  billId: string;
+  dormerId: string;
+  daysStayed: number;
+  shareAmount: string;
+  month: string;
   status: "pending" | "paid" | "overdue";
-  description: string;
+  paymentDate?: string;
+  description?: string;
+}
+
+interface DormerSession {
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    role: string;
+  };
+  dormer: {
+    id: string;
+    name: string;
+    room: string;
+    email: string;
+    monthlyRent: string;
+  };
 }
 
 export default function DormerBills() {
-  // Mock bills data - in real app this would come from Firebase
-  const bills: Bill[] = [
-    {
-      id: "1",
-      title: "Electricity Bill - December 2024",
-      amount: 450.75,
-      dueDate: "2024-12-31",
-      status: "pending",
-      description: "Monthly electricity consumption for your room"
-    },
-    {
-      id: "2", 
-      title: "Rent - December 2024",
-      amount: 1500,
-      dueDate: "2024-12-05",
-      status: "paid",
-      description: "Monthly room rent payment"
-    },
-    {
-      id: "3",
-      title: "Water Bill - December 2024", 
-      amount: 125.50,
-      dueDate: "2024-12-15",
-      status: "pending",
-      description: "Monthly water consumption charges"
-    },
-    {
-      id: "4",
-      title: "Internet Bill - November 2024",
-      amount: 200,
-      dueDate: "2024-11-30",
-      status: "overdue",
-      description: "Shared internet connection fee"
+  const [session, setSession] = useState<DormerSession | null>(null);
+
+  useEffect(() => {
+    const sessionData = localStorage.getItem('user_session');
+    if (sessionData) {
+      const parsedSession = JSON.parse(sessionData);
+      if (parsedSession.user?.role === 'dormer') {
+        setSession(parsedSession);
+      }
     }
-  ];
+  }, []);
+
+  const { data: payments, isLoading } = useQuery({
+    queryKey: ['payments', session?.dormer?.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/payments/dormer/${session?.dormer?.id}`);
+      if (!response.ok) throw new Error('Failed to fetch payments');
+      return response.json();
+    },
+    enabled: !!session?.dormer?.id,
+  });
+
+  const { data: billShares, isLoading: billSharesLoading } = useQuery({
+    queryKey: ['bill-shares', session?.dormer?.id],
+    queryFn: async () => {
+      // We'll need to fetch bill shares for this dormer
+      const response = await fetch(`/api/bills`);
+      if (!response.ok) throw new Error('Failed to fetch bills');
+      const bills = await response.json();
+      
+      // Get shares for each bill
+      const allShares = [];
+      for (const bill of bills) {
+        const sharesResponse = await fetch(`/api/bills/${bill.id}/shares`);
+        if (sharesResponse.ok) {
+          const shares = await sharesResponse.json();
+          const dormerShares = shares.filter((share: any) => share.dormerId === session?.dormer?.id);
+          allShares.push(...dormerShares.map((share: any) => ({ ...share, bill })));
+        }
+      }
+      return allShares;
+    },
+    enabled: !!session?.dormer?.id,
+  });
+
+  if (!session) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <div className="text-muted-foreground">Please log in to view bills</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isLoading || billSharesLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <div className="mt-2 text-muted-foreground">Loading bills...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Combine bill shares with payments to determine status
+  const bills = billShares?.map((share: any) => {
+    const payment = payments?.find((p: any) => 
+      p.month === share.bill.startDate?.slice(0, 7) && p.status === 'paid'
+    );
+    
+    return {
+      id: share.id,
+      title: `Electricity Bill - ${new Date(share.bill.startDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+      amount: parseFloat(share.shareAmount),
+      dueDate: share.bill.endDate,
+      status: payment ? 'paid' : 'pending',
+      description: `Your share: ${share.daysStayed} days stayed`,
+      billInfo: share.bill
+    };
+  }) || [];
+
+  // Add rent payments
+  const rentPayments = payments?.filter((p: any) => p.status === 'paid').map((payment: any) => ({
+    id: `rent-${payment.id}`,
+    title: `Rent - ${new Date(payment.paymentDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+    amount: parseFloat(payment.amount),
+    dueDate: payment.paymentDate,
+    status: payment.status,
+    description: 'Monthly room rent payment',
+    paymentInfo: payment
+  })) || [];
+
+  const allBills = [...bills, ...rentPayments];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -75,8 +156,8 @@ export default function DormerBills() {
     }
   };
 
-  const totalPending = bills.filter(b => b.status === "pending").reduce((sum, b) => sum + b.amount, 0);
-  const totalOverdue = bills.filter(b => b.status === "overdue").reduce((sum, b) => sum + b.amount, 0);
+  const totalPending = allBills.filter(b => b.status === "pending").reduce((sum, b) => sum + b.amount, 0);
+  const totalOverdue = allBills.filter(b => b.status === "overdue").reduce((sum, b) => sum + b.amount, 0);
 
   return (
     <div className="space-y-6">
@@ -113,7 +194,7 @@ export default function DormerBills() {
               <div>
                 <div className="text-sm text-muted-foreground">This Month</div>
                 <div className="text-2xl font-bold text-green-600">
-                  {bills.filter(b => b.status === "paid").length} Paid
+                  {allBills.filter(b => b.status === "paid").length} Paid
                 </div>
               </div>
             </div>
@@ -131,7 +212,13 @@ export default function DormerBills() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {bills.map((bill) => (
+            {allBills.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No bills found</p>
+              </div>
+            ) : (
+              allBills.map((bill) => (
               <div
                 key={bill.id}
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -177,7 +264,8 @@ export default function DormerBills() {
                   )}
                 </div>
               </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

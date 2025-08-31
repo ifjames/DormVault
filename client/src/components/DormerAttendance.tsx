@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { Calendar, CalendarCheck, CalendarX, Info } from "lucide-react";
 
 interface AttendanceDay {
@@ -12,56 +14,111 @@ interface AttendanceDay {
   note?: string;
 }
 
+interface DormerSession {
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    role: string;
+  };
+  dormer: {
+    id: string;
+    name: string;
+    room: string;
+    email: string;
+    monthlyRent: string;
+  };
+}
+
 export default function DormerAttendance() {
-  const [attendanceData, setAttendanceData] = useState<AttendanceDay[]>([]);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [session, setSession] = useState<DormerSession | null>(null);
   const [currentMonth] = useState(new Date().getMonth());
   const [currentYear] = useState(new Date().getFullYear());
-  const [daysStayed, setDaysStayed] = useState(0);
+  const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
 
   useEffect(() => {
-    // Generate attendance data for the current month
+    const sessionData = localStorage.getItem('user_session');
+    if (sessionData) {
+      const parsedSession = JSON.parse(sessionData);
+      if (parsedSession.user?.role === 'dormer') {
+        setSession(parsedSession);
+      }
+    }
+  }, []);
+
+  const { data: attendance, isLoading } = useQuery({
+    queryKey: ['attendance', session?.dormer?.id, currentMonthStr],
+    queryFn: async () => {
+      const response = await fetch(`/api/attendance/${session?.dormer?.id}?month=${currentMonthStr}`);
+      if (!response.ok) throw new Error('Failed to fetch attendance');
+      return response.json();
+    },
+    enabled: !!session?.dormer?.id,
+  });
+
+  const updateAttendanceMutation = useMutation({
+    mutationFn: async (data: { dormerId: string; date: string; isPresent: boolean }) => {
+      const response = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error('Failed to update attendance');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      toast({
+        title: "Attendance Updated",
+        description: "Your attendance has been recorded successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update attendance",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const generateMonthDays = () => {
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const startDate = new Date(currentYear, currentMonth, 1);
-    
-    const data: AttendanceDay[] = [];
+    const days = [];
     
     for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(currentYear, currentMonth, day);
-      const dateString = date.toISOString().split('T')[0];
-      
-      // Mock some attendance data - in real app this would come from Firebase
-      const isPresent = Math.random() > 0.2; // 80% attendance rate for demo
-      
-      data.push({
+      const date = `${currentMonthStr}-${String(day).padStart(2, '0')}`;
+      days.push({
+        date,
         day,
-        date: dateString,
-        isPresent,
-        note: day === 15 ? "Late arrival" : undefined
+        isPresent: isAttendanceMarked(date),
       });
     }
     
-    setAttendanceData(data);
-    
-    // Calculate days stayed
-    const stayedCount = data.filter(d => d.isPresent).length;
-    setDaysStayed(stayedCount);
-  }, [currentMonth, currentYear]);
+    return days;
+  };
 
-  const toggleAttendance = (day: number) => {
-    setAttendanceData(prev => 
-      prev.map(d => 
-        d.day === day 
-          ? { ...d, isPresent: !d.isPresent }
-          : d
-      )
-    );
+  const isAttendanceMarked = (date: string) => {
+    return attendance?.some((a: any) => a.date === date && a.isPresent) || false;
+  };
+
+  const toggleAttendance = (date: string) => {
+    if (!session?.dormer?.id) return;
     
-    // Recalculate days stayed
-    const updatedData = attendanceData.map(d => 
-      d.day === day ? { ...d, isPresent: !d.isPresent } : d
-    );
-    const stayedCount = updatedData.filter(d => d.isPresent).length;
-    setDaysStayed(stayedCount);
+    const isCurrentlyMarked = isAttendanceMarked(date);
+    updateAttendanceMutation.mutate({
+      dormerId: session.dormer.id,
+      date,
+      isPresent: !isCurrentlyMarked,
+    });
+  };
+
+  const getDaysStayed = () => {
+    return attendance?.filter((a: any) => a.isPresent).length || 0;
   };
 
   const monthNames = [
@@ -69,6 +126,18 @@ export default function DormerAttendance() {
     "July", "August", "September", "October", "November", "December"
   ];
 
+  if (!session) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <div className="text-muted-foreground">Please log in to view attendance</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const attendanceData = generateMonthDays();
+  const daysStayed = getDaysStayed();
   const today = new Date().getDate();
   const isCurrentMonth = new Date().getMonth() === currentMonth && new Date().getFullYear() === currentYear;
 
@@ -124,7 +193,7 @@ export default function DormerAttendance() {
                 isCurrentMonth && attendance.day === today ? 'bg-blue-50 dark:bg-blue-950/30' : ''
               }`}>
                 <div className="p-3 border-r font-medium">
-                  {index === 0 ? "You" : ""}
+                  {index === 0 ? session.dormer.name : ""}
                 </div>
                 <div className="p-3 border-r text-center font-mono">
                   {attendance.day}
@@ -135,15 +204,13 @@ export default function DormerAttendance() {
                 <div className="p-3 border-r text-center">
                   <Checkbox
                     checked={attendance.isPresent}
-                    onCheckedChange={() => toggleAttendance(attendance.day)}
+                    onCheckedChange={() => toggleAttendance(attendance.date)}
+                    disabled={updateAttendanceMutation.isPending || isLoading}
                     data-testid={`attendance-${attendance.day}`}
                   />
                 </div>
                 <div className="p-3 border-r text-center text-sm text-muted-foreground">
-                  {attendance.note || ""}
-                  {attendance.note && (
-                    <Info className="h-3 w-3 inline ml-1 text-blue-600" />
-                  )}
+                  {/* Note field - could be expanded in the future */}
                 </div>
                 <div className="p-3 text-center text-sm">
                   {index === 0 && (
