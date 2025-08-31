@@ -8,9 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { isUnauthorizedError } from "@/lib/authUtils";
 import { Calculator, Plus, Trash2, CheckCircle } from "lucide-react";
+import { dormersService, billsService } from "@/lib/firestoreService";
 
 const billCalculatorSchema = z.object({
   startDate: z.string(),
@@ -32,8 +31,9 @@ export default function BillCalculator() {
   const [people, setPeople] = useState([{ name: "", days: 1 }]);
   const [billResult, setBillResult] = useState<any>(null);
 
-  const { data: dormers } = useQuery<any[]>({
-    queryKey: ["/api/dormers"],
+  const { data: dormers } = useQuery({
+    queryKey: ["dormers"],
+    queryFn: dormersService.getAll,
   });
 
   const form = useForm<BillCalculatorForm>({
@@ -50,28 +50,22 @@ export default function BillCalculator() {
 
   const saveBillMutation = useMutation({
     mutationFn: async (data: any) => {
-      await apiRequest("POST", "/api/bills", data);
+      const bill = await billsService.create(data.bill);
+      const sharePromises = data.shares.map((share: any) => 
+        billsService.createShare({ ...share, billId: bill.id })
+      );
+      await Promise.all(sharePromises);
+      return bill;
     },
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Bill calculation saved successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/bills"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
+      queryClient.invalidateQueries({ queryKey: ["bills"] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
     },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to save bill calculation",

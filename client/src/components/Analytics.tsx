@@ -2,26 +2,33 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Users, DollarSign, Zap, Calendar, BarChart3, PieChart } from "lucide-react";
+import { dormersService, paymentsService } from "@/lib/firestoreService";
 
 export default function Analytics() {
-  const { data: analytics, isLoading } = useQuery<{
-    activeDormers: number;
-    monthlyRevenue: number;
-    pendingPayments: number;
-    avgElectricBill: number;
-    totalDormers: number;
-    occupancyRate: number;
-  }>({
-    queryKey: ["/api/analytics"],
+  const { data: dormers } = useQuery({
+    queryKey: ["dormers"],
+    queryFn: dormersService.getAll,
   });
 
-  const { data: dormers } = useQuery<any[]>({
-    queryKey: ["/api/dormers"],
+  const { data: payments } = useQuery({
+    queryKey: ["payments"],
+    queryFn: paymentsService.getAll,
   });
 
-  const { data: payments } = useQuery<any[]>({
-    queryKey: ["/api/payments"],
-  });
+  const isLoading = !dormers || !payments;
+
+  // Calculate analytics
+  const analytics = {
+    activeDormers: dormers?.filter((d: any) => d.isActive).length || 0,
+    monthlyRevenue: payments?.filter((p: any) => {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      return p.month === currentMonth && p.status === 'paid';
+    }).reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0) || 0,
+    pendingPayments: payments?.filter((p: any) => p.status === 'pending').length || 0,
+    avgElectricBill: 0, // Will calculate from bills later
+    totalDormers: dormers?.length || 0,
+    occupancyRate: dormers?.length ? Math.round(((dormers?.filter((d: any) => d.isActive).length || 0) / dormers.length) * 100) : 0,
+  };
 
   if (isLoading) {
     return (
@@ -47,7 +54,7 @@ export default function Analytics() {
     
     // Estimate based on payment amount vs monthly rent
     const daysStayed = dormerPayments.length > 0 
-      ? Math.round((parseFloat(dormerPayments[0].amount) / parseFloat(dormer.monthlyRent)) * 30)
+      ? Math.round((parseFloat((dormerPayments[0] as any).amount) / parseFloat((dormer as any).monthlyRent)) * 30)
       : 30; // Default to full month if active
 
     return {

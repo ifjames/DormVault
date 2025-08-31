@@ -13,10 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { isUnauthorizedError } from "@/lib/authUtils";
 import { CreditCard, Plus, Eye, Edit, Check, Clock, AlertTriangle, CheckCircle } from "lucide-react";
-import type { Dormer, Payment } from "@shared/schema";
+import { dormersService, paymentsService } from "@/lib/firestoreService";
 
 const paymentSchema = z.object({
   dormerId: z.string().min(1),
@@ -35,12 +33,14 @@ export default function PaymentTracker() {
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  const { data: dormers } = useQuery<Dormer[]>({
-    queryKey: ["/api/dormers"],
+  const { data: dormers } = useQuery({
+    queryKey: ["dormers"],
+    queryFn: dormersService.getAll,
   });
 
-  const { data: payments, isLoading } = useQuery<Payment[]>({
-    queryKey: ["/api/payments"],
+  const { data: payments, isLoading } = useQuery({
+    queryKey: ["payments"],
+    queryFn: paymentsService.getAll,
   });
 
   const form = useForm<PaymentForm>({
@@ -57,31 +57,18 @@ export default function PaymentTracker() {
   });
 
   const createPaymentMutation = useMutation({
-    mutationFn: async (data: PaymentForm) => {
-      await apiRequest("POST", "/api/payments", data);
-    },
+    mutationFn: paymentsService.create,
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Payment recorded successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
       setIsAddDialogOpen(false);
       form.reset();
     },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to record payment",
@@ -91,29 +78,16 @@ export default function PaymentTracker() {
   });
 
   const markAsPaidMutation = useMutation({
-    mutationFn: async (paymentId: string) => {
-      await apiRequest("PUT", `/api/payments/${paymentId}`, { status: "paid" });
-    },
+    mutationFn: (paymentId: string) => paymentsService.update(paymentId, { status: "paid" }),
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Payment marked as paid",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
     },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to update payment",
@@ -155,15 +129,15 @@ export default function PaymentTracker() {
   };
 
   const getDormerName = (dormerId: string) => {
-    const dormer = dormers?.find((d: Dormer) => d.id === dormerId);
-    return dormer ? `${dormer.name} - Room ${dormer.room}` : "Unknown";
+    const dormer = dormers?.find((d: any) => d.id === dormerId);
+    return dormer ? `${(dormer as any).name} - Room ${(dormer as any).room}` : "Unknown";
   };
 
-  const paidCount = payments?.filter((p: Payment) => p.status === "paid").length || 0;
-  const pendingCount = payments?.filter((p: Payment) => p.status === "pending").length || 0;
+  const paidCount = payments?.filter((p: any) => p.status === "paid").length || 0;
+  const pendingCount = payments?.filter((p: any) => p.status === "pending").length || 0;
   const totalExpected = (dormers?.length || 0) * 1500;
-  const totalCollected = payments?.filter((p: Payment) => p.status === "paid")
-    .reduce((sum: number, p: Payment) => sum + parseFloat(p.amount), 0) || 0;
+  const totalCollected = payments?.filter((p: any) => p.status === "paid")
+    .reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0) || 0;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -195,7 +169,7 @@ export default function PaymentTracker() {
                       <SelectValue placeholder="Choose a dormer..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {dormers?.map((dormer: Dormer) => (
+                      {dormers?.map((dormer: any) => (
                         <SelectItem key={dormer.id} value={dormer.id}>
                           {dormer.name} - Room {dormer.room}
                         </SelectItem>
@@ -303,7 +277,7 @@ export default function PaymentTracker() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {payments?.map((payment: Payment) => (
+                {payments?.map((payment: any) => (
                   <TableRow key={payment.id} data-testid={`payment-row-${payment.id}`}>
                     <TableCell className="font-medium">
                       {getDormerName(payment.dormerId)}
@@ -390,7 +364,7 @@ export default function PaymentTracker() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {dormers?.slice(0, 3).map((dormer: Dormer) => (
+            {dormers?.slice(0, 3).map((dormer: any) => (
               <div key={dormer.id} className="flex justify-between items-center mb-3 last:mb-0">
                 <div>
                   <div className="font-medium">{dormer.name}</div>

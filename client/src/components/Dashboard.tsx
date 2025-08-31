@@ -2,26 +2,38 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, DollarSign, AlertTriangle, Zap, Clock, CheckCircle, UserPlus, Download, Calculator, CreditCard, BarChart3 } from "lucide-react";
+import { dormersService, billsService, paymentsService } from "@/lib/firestoreService";
 
 export default function Dashboard() {
-  const { data: analytics, isLoading } = useQuery<{
-    activeDormers: number;
-    monthlyRevenue: number;
-    pendingPayments: number;
-    avgElectricBill: number;
-    totalDormers: number;
-    occupancyRate: number;
-  }>({
-    queryKey: ["/api/analytics"],
+  const { data: dormers } = useQuery({
+    queryKey: ["dormers"],
+    queryFn: dormersService.getAll,
   });
 
-  const { data: bills } = useQuery<any[]>({
-    queryKey: ["/api/bills"],
+  const { data: bills } = useQuery({
+    queryKey: ["bills"],
+    queryFn: billsService.getAll,
   });
 
-  const { data: payments } = useQuery<any[]>({
-    queryKey: ["/api/payments"],
+  const { data: payments } = useQuery({
+    queryKey: ["payments"],
+    queryFn: paymentsService.getAll,
   });
+
+  const isLoading = !dormers || !bills || !payments;
+
+  // Calculate analytics
+  const analytics = {
+    activeDormers: dormers?.filter((d: any) => d.isActive).length || 0,
+    monthlyRevenue: payments?.filter((p: any) => {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      return p.month === currentMonth && p.status === 'paid';
+    }).reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0) || 0,
+    pendingPayments: payments?.filter((p: any) => p.status === 'pending').length || 0,
+    avgElectricBill: bills && bills.length > 0 ? parseFloat((bills[0] as any).totalAmount) / (parseFloat((bills[0] as any).totalConsumption) || 1) : 0,
+    totalDormers: dormers?.length || 0,
+    occupancyRate: dormers?.length ? Math.round(((dormers?.filter((d: any) => d.isActive).length || 0) / dormers.length) * 100) : 0,
+  };
 
   if (isLoading) {
     return (

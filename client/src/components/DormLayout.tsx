@@ -1,21 +1,22 @@
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useTheme } from "@/components/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building, Moon, Sun, LogOut, BarChart3, Calculator, CreditCard, Home } from "lucide-react";
+import { Building, Moon, Sun, LogOut, BarChart3, Calculator, CreditCard, Home, Users } from "lucide-react";
 import Dashboard from "@/components/Dashboard";
 import BillCalculator from "@/components/BillCalculator";
 import PaymentTracker from "@/components/PaymentTracker";
 import Analytics from "@/components/Analytics";
+import DormerManagement from "@/components/DormerManagement";
 
 export default function DormLayout() {
-  const { user } = useAuth();
+  const { user, logout } = useFirebaseAuth();
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState("dashboard");
 
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
+  const handleLogout = async () => {
+    await logout();
   };
 
   return (
@@ -31,7 +32,7 @@ export default function DormLayout() {
             
             <div className="flex items-center space-x-3">
               <span className="hidden md:block text-sm text-muted-foreground">
-                Welcome, <span className="font-medium text-foreground">{(user as any)?.firstName || (user as any)?.email || "Admin"}</span>
+                Welcome, <span className="font-medium text-foreground">{user?.displayName || user?.email || "Admin"}</span>
               </span>
               <Button
                 variant="ghost"
@@ -58,11 +59,16 @@ export default function DormLayout() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="dashboard" className="flex items-center space-x-2" data-testid="tab-dashboard">
               <Home className="h-4 w-4" />
               <span className="hidden md:inline">Dashboard</span>
               <span className="md:hidden">Home</span>
+            </TabsTrigger>
+            <TabsTrigger value="dormers" className="flex items-center space-x-2" data-testid="tab-dormers">
+              <Users className="h-4 w-4" />
+              <span className="hidden md:inline">Dormers</span>
+              <span className="md:hidden">People</span>
             </TabsTrigger>
             <TabsTrigger value="calculator" className="flex items-center space-x-2" data-testid="tab-calculator">
               <Calculator className="h-4 w-4" />
@@ -83,6 +89,10 @@ export default function DormLayout() {
 
           <TabsContent value="dashboard">
             <Dashboard />
+          </TabsContent>
+          
+          <TabsContent value="dormers">
+            <DormerManagement />
           </TabsContent>
           
           <TabsContent value="calculator">
