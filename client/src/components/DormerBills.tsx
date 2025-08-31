@@ -61,6 +61,28 @@ export default function DormerBills() {
     }
   }, [user]);
 
+  // Mutation for creating payment record
+  const createPaymentMutation = useMutation({
+    mutationFn: paymentsService.create,
+    onSuccess: () => {
+      toast({
+        title: "Payment Completed",
+        description: "Your payment has been recorded successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['bills', dormerData?.id] });
+      setPaymentModalOpen(false);
+      setSelectedBill(null);
+    },
+    onError: (error) => {
+      console.error('Error recording payment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to record payment. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const { data: bills, isLoading } = useQuery({
     queryKey: ['bills', dormerData?.id],
     queryFn: async () => {
@@ -212,28 +234,6 @@ export default function DormerBills() {
     setSelectedBill(bill);
     setPaymentModalOpen(true);
   };
-
-  // Mutation for creating payment record
-  const createPaymentMutation = useMutation({
-    mutationFn: paymentsService.create,
-    onSuccess: () => {
-      toast({
-        title: "Payment Completed",
-        description: "Your payment has been recorded successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['bills', dormerData?.id] });
-      setPaymentModalOpen(false);
-      setSelectedBill(null);
-    },
-    onError: (error) => {
-      console.error('Error recording payment:', error);
-      toast({
-        title: "Error",
-        description: "Failed to record payment. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
 
   const handlePaymentComplete = () => {
     if (!selectedBill || !dormerData) return;
