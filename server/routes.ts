@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+// Removed Replit auth - using Firebase only
 import { 
   insertDormerSchema, 
   insertBillSchema, 
@@ -10,11 +10,10 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
+  // Using Firebase auth on frontend only
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/user', async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
@@ -69,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dormer routes
-  app.get('/api/dormers', isAuthenticated, async (req, res) => {
+  app.get('/api/dormers', async (req, res) => {
     try {
       const dormers = await storage.getDormers();
       res.json(dormers);
@@ -79,7 +78,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/dormers', isAuthenticated, async (req, res) => {
+  app.post('/api/dormers', async (req, res) => {
     try {
       const { password, ...dormerData } = req.body;
       
@@ -100,7 +99,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/dormers/:id', isAuthenticated, async (req, res) => {
+  app.put('/api/dormers/:id', async (req, res) => {
     try {
       const { id } = req.params;
       const validatedData = insertDormerSchema.partial().parse(req.body);
@@ -112,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/dormers/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/dormers/:id', async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deleteDormer(id);
@@ -124,7 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bill routes
-  app.get('/api/bills', isAuthenticated, async (req, res) => {
+  app.get('/api/bills', async (req, res) => {
     try {
       const bills = await storage.getBills();
       res.json(bills);
@@ -134,7 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/bills', isAuthenticated, async (req, res) => {
+  app.post('/api/bills', async (req, res) => {
     try {
       const { bill, shares } = req.body;
       const validatedBill = insertBillSchema.parse(bill);
@@ -155,7 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/bills/:id/shares', isAuthenticated, async (req, res) => {
+  app.get('/api/bills/:id/shares', async (req, res) => {
     try {
       const { id } = req.params;
       const shares = await storage.getBillShares(id);
@@ -167,7 +166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Payment routes
-  app.get('/api/payments', isAuthenticated, async (req, res) => {
+  app.get('/api/payments', async (req, res) => {
     try {
       const payments = await storage.getPayments();
       res.json(payments);
@@ -188,7 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/payments', isAuthenticated, async (req, res) => {
+  app.post('/api/payments', async (req, res) => {
     try {
       const validatedData = insertPaymentSchema.parse(req.body);
       const payment = await storage.createPayment(validatedData);
@@ -199,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/payments/:id', isAuthenticated, async (req, res) => {
+  app.put('/api/payments/:id', async (req, res) => {
     try {
       const { id } = req.params;
       const validatedData = insertPaymentSchema.partial().parse(req.body);
@@ -211,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/payments/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/payments/:id', async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deletePayment(id);
@@ -223,7 +222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Attendance routes
-  app.get('/api/attendance/:dormerId', isAuthenticated, async (req, res) => {
+  app.get('/api/attendance/:dormerId', async (req, res) => {
     try {
       const { dormerId } = req.params;
       const { month } = req.query;
@@ -235,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/attendance', isAuthenticated, async (req, res) => {
+  app.post('/api/attendance', async (req, res) => {
     try {
       const { dormerId, date, isPresent } = req.body;
       const attendance = await storage.upsertAttendance({ dormerId, date, isPresent });
@@ -295,7 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Analytics routes
-  app.get('/api/analytics', isAuthenticated, async (req, res) => {
+  app.get('/api/analytics', async (req, res) => {
     try {
       const dormers = await storage.getDormers();
       const payments = await storage.getPayments();

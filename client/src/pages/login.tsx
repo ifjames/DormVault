@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { User, Lock, Home } from "lucide-react";
+import { User, Lock, Home, Eye, EyeOff } from "lucide-react";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { useLocation } from "wouter";
 
 const loginSchema = z.object({
   email: z.string().email("Valid email required"),
@@ -19,6 +21,9 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function Login() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const { login } = useFirebaseAuth();
+  const [, setLocation] = useLocation();
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -31,37 +36,20 @@ export default function Login() {
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     try {
-      // Try unified login endpoint
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        
-        // Store login info
-        localStorage.setItem('user_session', JSON.stringify(result));
-        
+      const result = await login(data.email, data.password);
+      
+      if (result.success) {
         toast({
           title: "Login Successful",
-          description: `Welcome back, ${result.user.firstName || result.user.email}!`,
+          description: `Welcome back!`,
         });
-
-        // Redirect based on role
-        if (result.user.role === 'admin') {
-          window.location.href = '/';
-        } else if (result.user.role === 'dormer') {
-          window.location.href = '/dormer-dashboard';
-        }
+        
+        // Redirect to dashboard
+        setLocation('/');
       } else {
-        const error = await response.json();
         toast({
           title: "Login Failed",
-          description: error.message || "Invalid credentials",
+          description: result.error || "Invalid credentials",
           variant: "destructive",
         });
       }
@@ -77,17 +65,19 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <div className="bg-primary/10 p-3 rounded-full">
-              <Home className="h-6 w-6 text-primary" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+        <CardHeader className="space-y-4 text-center">
+          <div className="flex items-center justify-center mb-2">
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 rounded-2xl shadow-lg">
+              <Home className="h-8 w-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl text-center">DormMaster</CardTitle>
-          <p className="text-sm text-muted-foreground text-center">
-            Sign in to your account
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            DormVault
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Welcome back! Please sign in to your account
           </p>
         </CardHeader>
         <CardContent>
@@ -118,12 +108,19 @@ export default function Login() {
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
-                  className="pl-10"
+                  className="pl-10 pr-10"
                   {...form.register("password")}
                   data-testid="input-password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
               {form.formState.errors.password && (
                 <p className="text-sm text-destructive">
@@ -134,17 +131,24 @@ export default function Login() {
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium py-2.5 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
               disabled={isLoading}
               data-testid="button-login"
             >
-              {isLoading ? "Signing In..." : "Sign In"}
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Signing In...
+                </div>
+              ) : (
+                "Sign In"
+              )}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Need help? Contact your administrator
+              Secure Firebase Authentication • Need help? Contact your administrator
             </p>
           </div>
         </CardContent>
