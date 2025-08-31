@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { db, COLLECTIONS } from "@/lib/firebase";
+import { paymentsService } from "@/lib/firestoreService";
 import { collection, query, where, getDocs, orderBy, doc, getDoc } from "firebase/firestore";
 import { CreditCard, Calendar, DollarSign, AlertCircle, CheckCircle, Phone, User } from "lucide-react";
 import gcashQR from "@/assets/gcash-qr.png";
@@ -31,6 +33,8 @@ interface DormerData {
 
 export default function DormerBills() {
   const { user, isLoading: authLoading } = useFirebaseAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [dormerData, setDormerData] = useState<DormerData | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
@@ -209,10 +213,43 @@ export default function DormerBills() {
     setPaymentModalOpen(true);
   };
 
+  // Mutation for creating payment record
+  const createPaymentMutation = useMutation({
+    mutationFn: paymentsService.create,
+    onSuccess: () => {
+      toast({
+        title: "Payment Completed",
+        description: "Your payment has been recorded successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['bills', dormerData?.id] });
+      setPaymentModalOpen(false);
+      setSelectedBill(null);
+    },
+    onError: (error) => {
+      console.error('Error recording payment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to record payment. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handlePaymentComplete = () => {
-    setPaymentModalOpen(false);
-    setSelectedBill(null);
-    // Here you could add logic to mark the bill as paid or send a notification
+    if (!selectedBill || !dormerData) return;
+    
+    // Create payment record to mark bill as paid
+    const paymentData = {
+      dormerId: dormerData.id,
+      billShareId: selectedBill.id,
+      amount: selectedBill.amount,
+      paymentDate: new Date(),
+      paymentMethod: "GCash",
+      status: "paid" as const,
+      notes: `Payment for ${selectedBill.title}`,
+    };
+    
+    createPaymentMutation.mutate(paymentData);
   };
 
   return (
@@ -392,8 +429,10 @@ export default function DormerBills() {
                 <Button 
                   className="flex-1 text-sm py-2"
                   onClick={handlePaymentComplete}
+                  disabled={createPaymentMutation.isPending}
+                  data-testid="complete-payment-btn"
                 >
-                  Complete
+                  {createPaymentMutation.isPending ? "Processing..." : "Complete"}
                 </Button>
               </div>
             </div>
