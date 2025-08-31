@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, getDocs, getDoc, query, orderBy, where } from "firebase/firestore";
 
@@ -14,7 +14,11 @@ export const loginWithEmail = async (email: string, password: string) => {
 };
 
 export const createUserWithEmail = async (email: string, password: string) => {
-  return await createUserWithEmailAndPassword(auth, email, password);
+  // Prevent automatic sign-in after creation
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  // You might want to sign out the newly created user immediately if it's an admin-created account
+  // await signOut(auth); // Uncomment if you want to force sign out immediately
+  return userCredential;
 };
 
 export const logout = async () => {

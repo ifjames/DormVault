@@ -31,7 +31,8 @@ export const dormersService = {
     try {
       // First create Firebase Auth user if email and password are provided
       if (dormerData.email && dormerData.password) {
-        await createUserWithEmail(dormerData.email, dormerData.password);
+        const { createUserWithoutSignIn } = await import('./firebase');
+        await createUserWithoutSignIn(dormerData.email, dormerData.password);
       }
       
       // Then create the dormer record in Firestore (without password)
