@@ -86,7 +86,11 @@ export default function DormerAttendance() {
   
   const billingPeriodStr = useMemo(() => {
     if (!billingPeriod) return '';
-    return `${billingPeriod.startDate.getFullYear()}-${String(billingPeriod.startDate.getMonth() + 1).padStart(2, '0')}`;
+    // Handle both Date objects and string dates
+    const startDate = typeof billingPeriod.startDate === 'string' 
+      ? new Date(billingPeriod.startDate) 
+      : billingPeriod.startDate;
+    return `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`;
   }, [billingPeriod]);
 
   // Remove debug logging
