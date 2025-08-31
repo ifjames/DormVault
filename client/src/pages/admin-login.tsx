@@ -106,6 +106,19 @@ export default function AdminLogin() {
               )}
             </Button>
           </form>
+          
+          <div className="mt-6 pt-4 border-t text-center">
+            <p className="text-sm text-muted-foreground mb-2">
+              Are you a dormer?
+            </p>
+            <a 
+              href="/dormer-login" 
+              className="text-sm text-primary hover:underline font-medium"
+              data-testid="link-dormer-login"
+            >
+              Access Dormer Portal
+            </a>
+          </div>
         </CardContent>
       </Card>
     </div>

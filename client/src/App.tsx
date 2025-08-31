@@ -8,6 +8,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import NotFound from "@/pages/not-found";
 import AdminLogin from "@/pages/admin-login";
 import Home from "@/pages/home";
+import DormerLogin from "@/pages/dormer-login";
+import DormerDashboard from "@/pages/dormer-dashboard";
 
 function Router() {
   const { isAuthenticated, isLoading } = useFirebaseAuth();
@@ -22,6 +24,8 @@ function Router() {
 
   return (
     <Switch>
+      <Route path="/dormer-login" component={DormerLogin} />
+      <Route path="/dormer-dashboard" component={DormerDashboard} />
       {!isAuthenticated ? (
         <Route path="/" component={AdminLogin} />
       ) : (

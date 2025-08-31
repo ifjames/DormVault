@@ -38,8 +38,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/dormers', isAuthenticated, async (req, res) => {
     try {
-      const validatedData = insertDormerSchema.parse(req.body);
-      const dormer = await storage.createDormer(validatedData);
+      const { password, ...dormerData } = req.body;
+      
+      if (!password || password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+      }
+      
+      if (!dormerData.email) {
+        return res.status(400).json({ message: "Email is required for dormer account creation" });
+      }
+      
+      const validatedData = insertDormerSchema.parse(dormerData);
+      const dormer = await storage.createDormerWithUser({ ...validatedData, password });
       res.json(dormer);
     } catch (error) {
       console.error("Error creating dormer:", error);
@@ -124,6 +134,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/payments/dormer/:dormerId', async (req, res) => {
+    try {
+      const { dormerId } = req.params;
+      const payments = await storage.getPaymentsByDormer(dormerId);
+      res.json(payments);
+    } catch (error) {
+      console.error("Error fetching dormer payments:", error);
+      res.status(500).json({ message: "Failed to fetch payments" });
+    }
+  });
+
   app.post('/api/payments', isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertPaymentSchema.parse(req.body);
@@ -155,6 +176,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting payment:", error);
       res.status(400).json({ message: "Failed to delete payment" });
+    }
+  });
+
+  // Attendance routes
+  app.get('/api/attendance/:dormerId', isAuthenticated, async (req, res) => {
+    try {
+      const { dormerId } = req.params;
+      const { month } = req.query;
+      const attendance = await storage.getAttendanceByDormer(dormerId, month as string);
+      res.json(attendance);
+    } catch (error) {
+      console.error("Error fetching attendance:", error);
+      res.status(500).json({ message: "Failed to fetch attendance" });
+    }
+  });
+
+  app.post('/api/attendance', isAuthenticated, async (req, res) => {
+    try {
+      const { dormerId, date, isPresent } = req.body;
+      const attendance = await storage.upsertAttendance({ dormerId, date, isPresent });
+      res.json(attendance);
+    } catch (error) {
+      console.error("Error updating attendance:", error);
+      res.status(400).json({ message: "Failed to update attendance" });
+    }
+  });
+
+  // Dormer authentication routes
+  app.post('/api/auth/dormer/login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+      
+      const user = await storage.getUserByEmailAndPassword(email, password);
+      
+      if (!user || user.role !== 'dormer') {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Find the dormer record for this user
+      const dormers = await storage.getDormers();
+      const dormer = dormers.find(d => d.userId === user.id);
+      
+      if (!dormer) {
+        return res.status(404).json({ message: "Dormer profile not found" });
+      }
+      
+      // Simple session for dormers (you might want to use JWT or sessions)
+      res.json({ 
+        user: { 
+          id: user.id, 
+          email: user.email, 
+          firstName: user.firstName, 
+          role: user.role 
+        },
+        dormer: {
+          id: dormer.id,
+          name: dormer.name,
+          room: dormer.room,
+          email: dormer.email,
+          monthlyRent: dormer.monthlyRent
+        }
+      });
+    } catch (error) {
+      console.error("Error logging in dormer:", error);
+      res.status(500).json({ message: "Login failed" });
     }
   });
 

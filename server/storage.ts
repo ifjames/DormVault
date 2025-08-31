@@ -4,6 +4,7 @@ import {
   bills,
   billShares,
   payments,
+  attendance,
   type User,
   type UpsertUser,
   type Dormer,
@@ -14,6 +15,8 @@ import {
   type InsertBillShare,
   type Payment,
   type InsertPayment,
+  type Attendance,
+  type InsertAttendance,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -43,6 +46,15 @@ export interface IStorage {
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePayment(id: string, payment: Partial<InsertPayment>): Promise<Payment>;
   deletePayment(id: string): Promise<void>;
+
+  // Attendance operations
+  getAttendanceByDormer(dormerId: string, month?: string): Promise<Attendance[]>;
+  upsertAttendance(attendance: InsertAttendance): Promise<Attendance>;
+  updateAttendance(id: string, attendance: Partial<InsertAttendance>): Promise<Attendance>;
+
+  // Authentication operations for dormers
+  getUserByEmailAndPassword(email: string, password: string): Promise<User | undefined>;
+  createDormerWithUser(dormerData: InsertDormer & { password: string }): Promise<Dormer>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -144,6 +156,87 @@ export class DatabaseStorage implements IStorage {
 
   async deletePayment(id: string): Promise<void> {
     await db.delete(payments).where(eq(payments.id, id));
+  }
+
+  // Attendance operations
+  async getAttendanceByDormer(dormerId: string, month?: string): Promise<Attendance[]> {
+    if (month) {
+      // Filter by month (format: YYYY-MM)
+      const startDate = `${month}-01`;
+      const endDate = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth() + 1, 0).toISOString().split('T')[0];
+      
+      return await db.select().from(attendance)
+        .where(
+          and(
+            eq(attendance.dormerId, dormerId),
+            // Add date range filtering here if needed
+          )
+        )
+        .orderBy(desc(attendance.date));
+    }
+    
+    return await db.select().from(attendance)
+      .where(eq(attendance.dormerId, dormerId))
+      .orderBy(desc(attendance.date));
+  }
+
+  async upsertAttendance(attendanceData: InsertAttendance): Promise<Attendance> {
+    const [attendanceRecord] = await db
+      .insert(attendance)
+      .values(attendanceData)
+      .onConflictDoUpdate({
+        target: [attendance.dormerId, attendance.date],
+        set: {
+          isPresent: attendanceData.isPresent,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return attendanceRecord;
+  }
+
+  async updateAttendance(id: string, attendanceData: Partial<InsertAttendance>): Promise<Attendance> {
+    const [updatedAttendance] = await db
+      .update(attendance)
+      .set({ ...attendanceData, updatedAt: new Date() })
+      .where(eq(attendance.id, id))
+      .returning();
+    return updatedAttendance;
+  }
+
+  // Authentication operations for dormers
+  async getUserByEmailAndPassword(email: string, password: string): Promise<User | undefined> {
+    const bcrypt = require('bcrypt');
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    
+    if (user && user.password && await bcrypt.compare(password, user.password)) {
+      return user;
+    }
+    
+    return undefined;
+  }
+
+  async createDormerWithUser(dormerData: InsertDormer & { password: string }): Promise<Dormer> {
+    const bcrypt = require('bcrypt');
+    const hashedPassword = await bcrypt.hash(dormerData.password, 10);
+    
+    // Create user account first
+    const user = await this.upsertUser({
+      email: dormerData.email!,
+      firstName: dormerData.name.split(' ')[0],
+      lastName: dormerData.name.split(' ').slice(1).join(' ') || '',
+      role: 'dormer',
+      password: hashedPassword,
+    });
+
+    // Create dormer record linked to the user
+    const { password, ...dormerWithoutPassword } = dormerData;
+    const dormer = await this.createDormer({
+      ...dormerWithoutPassword,
+      userId: user.id,
+    });
+
+    return dormer;
   }
 }
 

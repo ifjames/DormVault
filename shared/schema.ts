@@ -32,6 +32,8 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  role: varchar("role").notNull().default("admin"), // "admin" or "dormer"
+  password: varchar("password"), // For dormer accounts
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -39,6 +41,7 @@ export const users = pgTable("users", {
 // Dormers table
 export const dormers = pgTable("dormers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id), // Link to user account
   name: text("name").notNull(),
   email: varchar("email"),
   room: varchar("room").notNull(),
@@ -84,6 +87,16 @@ export const payments = pgTable("payments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Attendance table for tracking daily stays
+export const attendance = pgTable("attendance", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  dormerId: varchar("dormer_id").notNull().references(() => dormers.id),
+  date: date("date").notNull(),
+  isPresent: boolean("is_present").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertDormerSchema = createInsertSchema(dormers).omit({
   id: true,
@@ -106,6 +119,12 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   createdAt: true,
 });
 
+export const insertAttendanceSchema = createInsertSchema(attendance).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type UpsertUser = typeof users.$inferInsert;
@@ -117,3 +136,5 @@ export type BillShare = typeof billShares.$inferSelect;
 export type InsertBillShare = z.infer<typeof insertBillShareSchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Attendance = typeof attendance.$inferSelect;
+export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;

@@ -21,8 +21,7 @@ const dormerSchema = z.object({
   room: z.string().min(1, "Room number is required"),
   monthlyRent: z.number().min(0, "Rent must be positive").default(1500),
   isActive: z.boolean().default(true),
-  checkInDate: z.string().optional(),
-  checkOutDate: z.string().optional(),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 type DormerForm = z.infer<typeof dormerSchema>;
@@ -46,8 +45,7 @@ export default function DormerManagement() {
       room: "",
       monthlyRent: 1500,
       isActive: true,
-      checkInDate: new Date().toISOString().slice(0, 10),
-      checkOutDate: "",
+      password: "",
     },
   });
 
@@ -127,19 +125,14 @@ export default function DormerManagement() {
       room: dormer.room,
       monthlyRent: parseFloat(dormer.monthlyRent) || 1500,
       isActive: dormer.isActive,
-      checkInDate: dormer.checkInDate || "",
-      checkOutDate: dormer.checkOutDate || "",
+      password: "", // Don't prefill password for security
     });
     setIsAddDialogOpen(true);
   };
 
   const calculateDaysStayed = (dormer: any) => {
-    if (!dormer.checkInDate) return 0;
-    
-    const checkIn = new Date(dormer.checkInDate);
-    const checkOut = dormer.checkOutDate ? new Date(dormer.checkOutDate) : new Date();
-    const diffTime = Math.abs(checkOut.getTime() - checkIn.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // This will be calculated from the attendance table in the future
+    return 0;
   };
 
   const activeDormers = dormers?.filter((d: any) => d.isActive) || [];
@@ -228,25 +221,15 @@ export default function DormerManagement() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="checkInDate">Check-in Date</Label>
-                    <Input
-                      id="checkInDate"
-                      type="date"
-                      {...form.register("checkInDate")}
-                      data-testid="input-dormer-checkin"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="checkOutDate">Check-out Date (Optional)</Label>
-                    <Input
-                      id="checkOutDate"
-                      type="date"
-                      {...form.register("checkOutDate")}
-                      data-testid="input-dormer-checkout"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter password for dormer account"
+                    {...form.register("password")}
+                    data-testid="input-dormer-password"
+                  />
                 </div>
 
                 <div className="flex space-x-2">
