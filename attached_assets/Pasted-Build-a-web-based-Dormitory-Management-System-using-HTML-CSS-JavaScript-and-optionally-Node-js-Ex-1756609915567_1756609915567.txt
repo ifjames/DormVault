@@ -1,0 +1,54 @@
+Build a web-based Dormitory Management System using HTML, CSS, JavaScript, and optionally Node.js/Express for backend. The system should include the following:
+
+1. **Dashboard Tabs**:
+   - **Meralco Bill Calculator**:
+       - Inputs: Previous Meter Reading, Current Meter Reading, Rate per kWh, Start Date, End Date, Number of People Staying.
+       - For each person: Name and Days Stayed.
+       - When user clicks "Calculate Bill", show:
+         - Start Date, End Date
+         - Previous & Current Reading
+         - Total kWh Consumed
+         - Rate per kWh
+         - Individual share for each person based on days stayed
+         - Total Bill
+       - Formula: `(CurrentReading - PreviousReading) * RatePerKwh`, then split proportionally by days stayed.
+       - Example Output:
+         ```
+         Start Date: 2025-07-22
+         End Date: 2025-08-21
+         Previous Reading: 8589
+         Current Reading: 8675
+         Total kWh Consumed: 86 kWh
+         Rate per kWh: ₱13.71
+         James (8 days): ₱786.04
+         Amiel (3 days): ₱294.76
+         Phael (1 day): ₱98.25
+         Total Bill: ₱1,179.06
+         ```
+
+2. **Stay Payment Tracker**:
+   - Track each dormer’s monthly rent (default ₱1500 per month).
+   - Allow marking when a user has paid.
+   - Store logs of payments in a local storage or database (for MVP, local storage is fine).
+
+3. **Logs & History**:
+   - Log all Meralco bills calculated with timestamp.
+   - Log all payments with date and user name.
+   - Display these in a table format.
+
+4. **Analytics Tab**:
+   - Show:
+     - Total current dormers
+     - Total collected rent this month
+     - Average electricity bill per person
+     - Number of days each person stayed this month.
+
+5. **UX/UI Requirements**:
+   - Use **Bootstrap 4 or 5** for styling.
+   - Responsive design.
+   - Simple tab navigation for: **Dashboard | Bill Calculator | Payments | Analytics**.
+
+6. **Extra Requirements**:
+   - Dark/Light Mode toggle.
+   - Data persistence using localStorage (for MVP).
+   - Modular JavaScript for future backend integration.
