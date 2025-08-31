@@ -73,23 +73,25 @@ export default function DormerBills() {
       });
       
       for (const shareDoc of billSharesSnapshot.docs) {
-        const shareData = shareDoc.data();
-        
-        console.log("Fetching bill with ID:", shareData.billId);
-        
-        // Get the associated bill using doc() instead of query
-        const billDocRef = doc(db, COLLECTIONS.BILLS, shareData.billId);
-        const billDocSnap = await getDoc(billDocRef);
-        
-        console.log("Bill document exists:", billDocSnap.exists());
-        if (billDocSnap.exists()) {
-          console.log("Bill data:", billDocSnap.data());
-        } else {
-          console.warn("❌ Bill document not found for ID:", shareData.billId);
-        }
-        
-        if (billDocSnap.exists()) {
-          const billData = billDocSnap.data();
+        try {
+          const shareData = shareDoc.data();
+          
+          console.log("Processing bill share - Fetching bill with ID:", shareData.billId);
+          
+          // Get the associated bill using doc() instead of query
+          const billDocRef = doc(db, COLLECTIONS.BILLS, shareData.billId);
+          const billDocSnap = await getDoc(billDocRef);
+          
+          console.log("Bill document exists:", billDocSnap.exists());
+          if (billDocSnap.exists()) {
+            console.log("Bill data:", billDocSnap.data());
+          } else {
+            console.warn("❌ Bill document not found for ID:", shareData.billId);
+            continue; // Skip this iteration if bill doesn't exist
+          }
+          
+          if (billDocSnap.exists()) {
+            const billData = billDocSnap.data();
           
           // Check if this bill share has been paid
           const paymentsRef = collection(db, COLLECTIONS.PAYMENTS);
@@ -112,6 +114,9 @@ export default function DormerBills() {
             description: `Your share: ${shareData.daysStayed} days stayed`,
             type: "electricity" as const
           });
+        }
+        } catch (error) {
+          console.error("Error processing bill share:", shareDoc.id, error);
         }
       }
       
