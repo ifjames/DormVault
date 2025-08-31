@@ -29,26 +29,24 @@ export default function Home() {
     const checkUserRole = async () => {
       if (user?.email && isAuthenticated) {
         try {
-          // Admin email check - adjust this to your admin email
-          const adminEmails = ["admin@dormvault.com", "administrator@gmail.com"];
+          console.log("Checking role for email:", user.email);
           
-          if (adminEmails.includes(user.email)) {
-            setUserRole("admin");
+          // Check if user exists in dormers collection first
+          const dormers = await dormersService.getAll();
+          const dormerExists = dormers.some((dormer: any) => dormer.email === user.email);
+          
+          if (dormerExists) {
+            console.log("User found in dormers collection - setting role to dormer");
+            setUserRole("dormer");
           } else {
-            // Check if user exists in dormers collection
-            const dormers = await dormersService.getAll();
-            const dormerExists = dormers.some((dormer: any) => dormer.email === user.email);
-            
-            if (dormerExists) {
-              setUserRole("dormer");
-            } else {
-              // Default to dormer for new users
-              setUserRole("dormer");
-            }
+            // If not in dormers collection, default to admin
+            console.log("User NOT found in dormers collection - setting role to admin");
+            setUserRole("admin");
           }
         } catch (error) {
           console.error("Error checking user role:", error);
-          setUserRole("dormer"); // Default to dormer on error
+          // If there's an error accessing dormers, default to admin to be safe
+          setUserRole("admin");
         }
         setRoleLoading(false);
       }
