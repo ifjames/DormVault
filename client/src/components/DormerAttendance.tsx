@@ -54,9 +54,7 @@ export default function DormerAttendance() {
   
   const billingPeriodStr = `${billingPeriod.startDate.getFullYear()}-${String(billingPeriod.startDate.getMonth() + 1).padStart(2, '0')}`;
 
-  // Debug today's date comparison
-  const todayStr = new Date().toISOString().split('T')[0];
-  console.log('Today string for comparison:', todayStr);
+  // Remove debug logging
 
   // Fetch dormer data when user is authenticated
   useEffect(() => {
@@ -296,19 +294,13 @@ export default function DormerAttendance() {
             
             {attendanceData.map((attendance, index) => (
               <div key={attendance.day} className={`grid grid-cols-5 gap-0 border-b hover:bg-muted/30 transition-colors ${
-                new Date().toISOString().split('T')[0] === attendance.date ? 'bg-blue-50 dark:bg-blue-950/30' : ''
+''
               }`}>
                 <div className="p-2 border-r font-medium text-sm">
                   {index === 0 ? dormerData?.name?.split('@')[0] || dormerData?.name || "" : ""}
                 </div>
                 <div className="p-2 border-r text-center font-mono text-sm">
                   {attendance.day}
-                  {(() => {
-                    const todayStr = new Date().toISOString().split('T')[0];
-                    const isToday = todayStr === attendance.date;
-                    console.log(`Row ${index}: Day ${attendance.day} (${attendance.date}) === ${todayStr} ? ${isToday}`);
-                    return isToday ? <Badge variant="secondary" className="ml-1 text-xs">Today</Badge> : null;
-                  })()}
                 </div>
                 <div className="p-2 border-r text-center">
                   <Checkbox
