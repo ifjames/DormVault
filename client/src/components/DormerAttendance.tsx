@@ -5,6 +5,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { db, COLLECTIONS } from "@/lib/firebase";
+import { collection, query, where, getDocs, doc, setDoc, orderBy } from "firebase/firestore";
 import { Calendar, CalendarCheck, CalendarX, Info } from "lucide-react";
 
 interface AttendanceDay {
@@ -14,61 +17,82 @@ interface AttendanceDay {
   note?: string;
 }
 
-interface DormerSession {
-  user: {
-    id: string;
-    email: string;
-    firstName: string;
-    role: string;
-  };
-  dormer: {
-    id: string;
-    name: string;
-    room: string;
-    email: string;
-    monthlyRent: string;
-  };
+interface DormerData {
+  id: string;
+  name: string;
+  room: string;
+  email: string;
+  monthlyRent: string;
+  role: string;
 }
 
 export default function DormerAttendance() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [session, setSession] = useState<DormerSession | null>(null);
+  const { user, isLoading: authLoading } = useFirebaseAuth();
+  const [dormerData, setDormerData] = useState<DormerData | null>(null);
   const [currentMonth] = useState(new Date().getMonth());
   const [currentYear] = useState(new Date().getFullYear());
   const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
 
+  // Fetch dormer data when user is authenticated
   useEffect(() => {
-    const sessionData = localStorage.getItem('user_session');
-    if (sessionData) {
-      const parsedSession = JSON.parse(sessionData);
-      if (parsedSession.user?.role === 'dormer') {
-        setSession(parsedSession);
-      }
+    if (user?.email) {
+      const fetchDormerData = async () => {
+        try {
+          const dormersRef = collection(db, COLLECTIONS.DORMERS);
+          const q = query(dormersRef, where("email", "==", user.email));
+          const querySnapshot = await getDocs(q);
+          
+          if (!querySnapshot.empty) {
+            const dormerDoc = querySnapshot.docs[0];
+            setDormerData({ id: dormerDoc.id, ...dormerDoc.data() } as DormerData);
+          }
+        } catch (error) {
+          console.error("Error fetching dormer data:", error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch your profile data",
+            variant: "destructive",
+          });
+        }
+      };
+      
+      fetchDormerData();
     }
-  }, []);
+  }, [user, toast]);
 
   const { data: attendance, isLoading } = useQuery({
-    queryKey: ['attendance', session?.dormer?.id, currentMonthStr],
+    queryKey: ['attendance', dormerData?.id, currentMonthStr],
     queryFn: async () => {
-      const response = await fetch(`/api/attendance/${session?.dormer?.id}?month=${currentMonthStr}`);
-      if (!response.ok) throw new Error('Failed to fetch attendance');
-      return response.json();
+      if (!dormerData?.id) return [];
+      
+      // Create attendance collection reference
+      const attendanceRef = collection(db, 'attendance');
+      const q = query(
+        attendanceRef,
+        where("dormerId", "==", dormerData.id),
+        where("month", "==", currentMonthStr),
+        orderBy("date")
+      );
+      
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     },
-    enabled: !!session?.dormer?.id,
+    enabled: !!dormerData?.id,
   });
 
   const updateAttendanceMutation = useMutation({
     mutationFn: async (data: { dormerId: string; date: string; isPresent: boolean }) => {
-      const response = await fetch('/api/attendance', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Failed to update attendance');
-      return response.json();
+      const attendanceRef = doc(db, 'attendance', `${data.dormerId}_${data.date}`);
+      await setDoc(attendanceRef, {
+        dormerId: data.dormerId,
+        date: data.date,
+        month: currentMonthStr,
+        isPresent: data.isPresent,
+        updatedAt: new Date()
+      }, { merge: true });
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
@@ -107,11 +131,11 @@ export default function DormerAttendance() {
   };
 
   const toggleAttendance = (date: string) => {
-    if (!session?.dormer?.id) return;
+    if (!dormerData?.id) return;
     
     const isCurrentlyMarked = isAttendanceMarked(date);
     updateAttendanceMutation.mutate({
-      dormerId: session.dormer.id,
+      dormerId: dormerData.id,
       date,
       isPresent: !isCurrentlyMarked,
     });
@@ -126,7 +150,18 @@ export default function DormerAttendance() {
     "July", "August", "September", "October", "November", "December"
   ];
 
-  if (!session) {
+  if (authLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <div className="mt-2 text-muted-foreground">Loading...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!user || !dormerData) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
@@ -193,7 +228,7 @@ export default function DormerAttendance() {
                 isCurrentMonth && attendance.day === today ? 'bg-blue-50 dark:bg-blue-950/30' : ''
               }`}>
                 <div className="p-3 border-r font-medium">
-                  {index === 0 ? session.dormer.name : ""}
+                  {index === 0 ? dormerData.name : ""}
                 </div>
                 <div className="p-3 border-r text-center font-mono">
                   {attendance.day}

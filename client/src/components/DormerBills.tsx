@@ -3,83 +3,126 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { db, COLLECTIONS } from "@/lib/firebase";
+import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { CreditCard, Calendar, DollarSign, AlertCircle, CheckCircle } from "lucide-react";
 
 interface Bill {
   id: string;
-  billId: string;
-  dormerId: string;
-  daysStayed: number;
-  shareAmount: string;
-  month: string;
+  title: string;
+  amount: number;
+  dueDate: string;
   status: "pending" | "paid" | "overdue";
-  paymentDate?: string;
-  description?: string;
+  description: string;
+  type: "electricity" | "rent" | "water" | "internet";
 }
 
-interface DormerSession {
-  user: {
-    id: string;
-    email: string;
-    firstName: string;
-    role: string;
-  };
-  dormer: {
-    id: string;
-    name: string;
-    room: string;
-    email: string;
-    monthlyRent: string;
-  };
+interface DormerData {
+  id: string;
+  name: string;
+  room: string;
+  email: string;
+  monthlyRent: string;
+  role: string;
 }
 
 export default function DormerBills() {
-  const [session, setSession] = useState<DormerSession | null>(null);
+  const { user, isLoading: authLoading } = useFirebaseAuth();
+  const [dormerData, setDormerData] = useState<DormerData | null>(null);
 
+  // Fetch dormer data when user is authenticated
   useEffect(() => {
-    const sessionData = localStorage.getItem('user_session');
-    if (sessionData) {
-      const parsedSession = JSON.parse(sessionData);
-      if (parsedSession.user?.role === 'dormer') {
-        setSession(parsedSession);
-      }
-    }
-  }, []);
-
-  const { data: payments, isLoading } = useQuery({
-    queryKey: ['payments', session?.dormer?.id],
-    queryFn: async () => {
-      const response = await fetch(`/api/payments/dormer/${session?.dormer?.id}`);
-      if (!response.ok) throw new Error('Failed to fetch payments');
-      return response.json();
-    },
-    enabled: !!session?.dormer?.id,
-  });
-
-  const { data: billShares, isLoading: billSharesLoading } = useQuery({
-    queryKey: ['bill-shares', session?.dormer?.id],
-    queryFn: async () => {
-      // We'll need to fetch bill shares for this dormer
-      const response = await fetch(`/api/bills`);
-      if (!response.ok) throw new Error('Failed to fetch bills');
-      const bills = await response.json();
+    if (user?.email) {
+      const fetchDormerData = async () => {
+        try {
+          const dormersRef = collection(db, COLLECTIONS.DORMERS);
+          const q = query(dormersRef, where("email", "==", user.email));
+          const querySnapshot = await getDocs(q);
+          
+          if (!querySnapshot.empty) {
+            const dormerDoc = querySnapshot.docs[0];
+            setDormerData({ id: dormerDoc.id, ...dormerDoc.data() } as DormerData);
+          }
+        } catch (error) {
+          console.error("Error fetching dormer data:", error);
+        }
+      };
       
-      // Get shares for each bill
-      const allShares = [];
-      for (const bill of bills) {
-        const sharesResponse = await fetch(`/api/bills/${bill.id}/shares`);
-        if (sharesResponse.ok) {
-          const shares = await sharesResponse.json();
-          const dormerShares = shares.filter((share: any) => share.dormerId === session?.dormer?.id);
-          allShares.push(...dormerShares.map((share: any) => ({ ...share, bill })));
+      fetchDormerData();
+    }
+  }, [user]);
+
+  const { data: bills, isLoading } = useQuery({
+    queryKey: ['bills', dormerData?.id],
+    queryFn: async () => {
+      if (!dormerData?.id) return [];
+      
+      const billsData: Bill[] = [];
+      
+      // Fetch bill shares for electricity bills
+      const billSharesRef = collection(db, COLLECTIONS.BILL_SHARES);
+      const billSharesQuery = query(billSharesRef, where("dormerId", "==", dormerData.id));
+      const billSharesSnapshot = await getDocs(billSharesQuery);
+      
+      for (const shareDoc of billSharesSnapshot.docs) {
+        const shareData = shareDoc.data();
+        
+        // Get the associated bill
+        const billsRef = collection(db, COLLECTIONS.BILLS);
+        const billsQuery = query(billsRef, where("__name__", "==", shareData.billId));
+        const billsSnapshot = await getDocs(billsQuery);
+        
+        if (!billsSnapshot.empty) {
+          const billData = billsSnapshot.docs[0].data();
+          billsData.push({
+            id: shareDoc.id,
+            title: `Electricity Bill - ${new Date(billData.startDate.toDate()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+            amount: parseFloat(shareData.shareAmount),
+            dueDate: billData.endDate.toDate().toISOString().split('T')[0],
+            status: "pending", // We'll check payments to determine actual status
+            description: `Your share: ${shareData.daysStayed} days stayed`,
+            type: "electricity" as const
+          });
         }
       }
-      return allShares;
+      
+      // Fetch payments to see what's been paid
+      const paymentsRef = collection(db, COLLECTIONS.PAYMENTS);
+      const paymentsQuery = query(paymentsRef, where("dormerId", "==", dormerData.id));
+      const paymentsSnapshot = await getDocs(paymentsQuery);
+      
+      // Add rent payments as bills
+      paymentsSnapshot.docs.forEach(paymentDoc => {
+        const paymentData = paymentDoc.data();
+        billsData.push({
+          id: paymentDoc.id,
+          title: `Rent - ${paymentData.month}`,
+          amount: parseFloat(paymentData.amount),
+          dueDate: paymentData.paymentDate.toDate().toISOString().split('T')[0],
+          status: paymentData.status || "paid",
+          description: "Monthly room rent payment",
+          type: "rent" as const
+        });
+      });
+      
+      return billsData.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
     },
-    enabled: !!session?.dormer?.id,
+    enabled: !!dormerData?.id,
   });
 
-  if (!session) {
+  if (authLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <div className="mt-2 text-muted-foreground">Loading...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!user || !dormerData) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
@@ -89,7 +132,7 @@ export default function DormerBills() {
     );
   }
 
-  if (isLoading || billSharesLoading) {
+  if (isLoading) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
@@ -100,35 +143,7 @@ export default function DormerBills() {
     );
   }
 
-  // Combine bill shares with payments to determine status
-  const bills = billShares?.map((share: any) => {
-    const payment = payments?.find((p: any) => 
-      p.month === share.bill.startDate?.slice(0, 7) && p.status === 'paid'
-    );
-    
-    return {
-      id: share.id,
-      title: `Electricity Bill - ${new Date(share.bill.startDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
-      amount: parseFloat(share.shareAmount),
-      dueDate: share.bill.endDate,
-      status: payment ? 'paid' : 'pending',
-      description: `Your share: ${share.daysStayed} days stayed`,
-      billInfo: share.bill
-    };
-  }) || [];
-
-  // Add rent payments
-  const rentPayments = payments?.filter((p: any) => p.status === 'paid').map((payment: any) => ({
-    id: `rent-${payment.id}`,
-    title: `Rent - ${new Date(payment.paymentDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
-    amount: parseFloat(payment.amount),
-    dueDate: payment.paymentDate,
-    status: payment.status,
-    description: 'Monthly room rent payment',
-    paymentInfo: payment
-  })) || [];
-
-  const allBills = [...bills, ...rentPayments];
+  const allBills = bills || [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
