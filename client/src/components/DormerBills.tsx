@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { db, COLLECTIONS } from "@/lib/firebase";
 import { collection, query, where, getDocs, orderBy, doc, getDoc } from "firebase/firestore";
@@ -334,51 +334,54 @@ export default function DormerBills() {
 
       {/* Payment Modal */}
       <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-center">Pay Bill via GCash</DialogTitle>
+            <DialogDescription className="text-center text-sm text-muted-foreground">
+              Complete your payment using GCash
+            </DialogDescription>
           </DialogHeader>
           
           {selectedBill && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Bill Details */}
-              <div className="text-center p-4 bg-muted rounded-lg">
-                <div className="font-semibold text-lg">{selectedBill.title}</div>
-                <div className="text-2xl font-bold text-destructive">₱{selectedBill.amount.toFixed(2)}</div>
-                <div className="text-sm text-muted-foreground">{selectedBill.description}</div>
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <div className="font-semibold text-base">{selectedBill.title}</div>
+                <div className="text-xl font-bold text-destructive">₱{selectedBill.amount.toFixed(2)}</div>
+                <div className="text-xs text-muted-foreground">{selectedBill.description}</div>
               </div>
 
               {/* QR Code */}
               <div className="text-center">
-                <div className="bg-white p-4 rounded-lg inline-block shadow-sm">
+                <div className="bg-white p-2 sm:p-4 rounded-lg inline-block shadow-sm">
                   <img 
                     src={gcashQR} 
                     alt="GCash QR Code" 
-                    className="w-64 h-auto mx-auto"
+                    className="w-48 sm:w-64 h-auto mx-auto"
                   />
                 </div>
               </div>
 
               {/* Account Details */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex items-center justify-center space-x-2">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">JAMES RAPHAEL CASTILLO</span>
+                  <span className="font-medium text-sm sm:text-base">JAMES RAPHAEL CASTILLO</span>
                 </div>
                 <div className="flex items-center justify-center space-x-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">09276681520</span>
+                  <span className="font-medium text-sm sm:text-base">09276681520</span>
                 </div>
               </div>
 
               {/* Instructions */}
-              <div className="text-center text-sm text-muted-foreground">
+              <div className="text-center text-xs sm:text-sm text-muted-foreground">
                 <p>Scan the QR code or send to the mobile number above.</p>
                 <p>Click "Complete" after making the payment.</p>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-2">
                 <Button 
                   variant="outline" 
                   className="flex-1"
