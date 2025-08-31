@@ -12,7 +12,7 @@ import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useLocation } from "wouter";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  username: z.string().min(1, "Username is required").trim(),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -38,6 +38,7 @@ export default function Login() {
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
+    mode: "onSubmit",
     defaultValues: {
       username: localStorage.getItem('rememberedUsername') || "",
       password: "",
@@ -46,9 +47,14 @@ export default function Login() {
 
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
+    
+    console.log('Login attempt with:', { username: data.username, email: getUserEmail(data.username) });
+    
     try {
       const email = getUserEmail(data.username);
       const result = await login(email, data.password);
+      
+      console.log('Login result:', result);
       
       // Handle remember me functionality
       if (rememberMe) {
@@ -62,7 +68,7 @@ export default function Login() {
       if (result.success) {
         toast({
           title: "Login Successful",
-          description: `Welcome back!`,
+          description: `Welcome back, ${data.username}!`,
         });
         
         // Redirect to dashboard
@@ -70,14 +76,15 @@ export default function Login() {
       } else {
         toast({
           title: "Login Failed",
-          description: result.error || "Invalid credentials",
+          description: result.error || "Invalid credentials. Try: james/password123 or admin/admin123",
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Login error:', error);
       toast({
         title: "Error",
-        description: "Failed to login. Please try again.",
+        description: error.message || "Failed to login. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -135,7 +142,10 @@ export default function Login() {
                         />
                         <button
                           type="button"
-                          onClick={() => setShowPassword(!showPassword)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setShowPassword(!showPassword);
+                          }}
                           className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                         >
                           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -151,7 +161,10 @@ export default function Login() {
                         type="checkbox" 
                         id="remember" 
                         checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
+                        onChange={(e) => {
+                          e.preventDefault();
+                          setRememberMe(e.target.checked);
+                        }}
                         className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded" 
                       />
                       <label htmlFor="remember" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">Remember me</label>
@@ -232,7 +245,10 @@ export default function Login() {
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowPassword(!showPassword);
+                    }}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -248,7 +264,10 @@ export default function Login() {
                   type="checkbox" 
                   id="remember-mobile" 
                   checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    setRememberMe(e.target.checked);
+                  }}
                   className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded" 
                 />
                 <label htmlFor="remember-mobile" className="ml-2 text-gray-700 dark:text-gray-300">Remember me</label>
