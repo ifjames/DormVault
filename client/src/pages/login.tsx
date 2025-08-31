@@ -41,12 +41,8 @@ export default function Login() {
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     
-    console.log('Login attempt with:', { email: data.email });
-    
     try {
       const result = await login(data.email, data.password);
-      
-      console.log('Login result:', result);
       
       // Handle remember me functionality
       if (rememberMe) {
@@ -73,10 +69,9 @@ export default function Login() {
         });
       }
     } catch (error: any) {
-      console.error('Login error:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to login. Please try again.",
+        title: "Login Failed",
+        description: "Invalid email or password. Make sure you have an account created in Firebase.",
         variant: "destructive",
       });
     } finally {
