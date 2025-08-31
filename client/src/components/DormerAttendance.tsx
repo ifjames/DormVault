@@ -31,27 +31,35 @@ export default function DormerAttendance() {
   const queryClient = useQueryClient();
   const { user, isLoading: authLoading } = useFirebaseAuth();
   const [dormerData, setDormerData] = useState<DormerData | null>(null);
-  // Calculate billing period (21st of current month to 20th of next month)
+  // Calculate billing period (22nd of current month to 21st of next month)
   const [billingPeriod] = useState(() => {
     const today = new Date();
     const currentDay = today.getDate();
     
-    // If today is before the 21st, billing period is from previous month 21st to current month 20th
-    // If today is 21st or after, billing period is from current month 21st to next month 20th
-    if (currentDay < 21) {
-      // Previous month 21st to current month 20th
-      const startDate = new Date(today.getFullYear(), today.getMonth() - 1, 21);
-      const endDate = new Date(today.getFullYear(), today.getMonth(), 20);
+    // Billing period is always from 22nd to 21st
+    // If today is before the 22nd, use previous month 22nd to current month 21st
+    // If today is 22nd or after, use current month 22nd to next month 21st
+    if (currentDay < 22) {
+      // Previous month 22nd to current month 21st
+      const startDate = new Date(today.getFullYear(), today.getMonth() - 1, 22);
+      const endDate = new Date(today.getFullYear(), today.getMonth(), 21);
       return { startDate, endDate };
     } else {
-      // Current month 21st to next month 20th
-      const startDate = new Date(today.getFullYear(), today.getMonth(), 21);
-      const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 20);
+      // Current month 22nd to next month 21st  
+      const startDate = new Date(today.getFullYear(), today.getMonth(), 22);
+      const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 21);
       return { startDate, endDate };
     }
   });
   
   const billingPeriodStr = `${billingPeriod.startDate.getFullYear()}-${String(billingPeriod.startDate.getMonth() + 1).padStart(2, '0')}`;
+
+  // Debug logging
+  console.log('Today is:', new Date().toDateString());
+  console.log('Current day:', new Date().getDate());
+  console.log('Billing period start:', billingPeriod.startDate.toDateString());
+  console.log('Billing period end:', billingPeriod.endDate.toDateString());
+  console.log('Billing period string:', billingPeriodStr);
 
   // Fetch dormer data when user is authenticated
   useEffect(() => {
