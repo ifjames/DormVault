@@ -3,12 +3,12 @@ import { getAuth, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, getDocs, getDoc, query, orderBy, where } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB8kamfXr2-2CZvkgEnEkJiuBfweAbPHFE",
-  authDomain: "dormvault-861ee.firebaseapp.com",
-  projectId: "dormvault-861ee",
-  storageBucket: "dormvault-861ee.firebasestorage.app",
-  messagingSenderId: "910518209468",
-  appId: "1:910518209468:web:f93ef599a4fe1297b1f9b9"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
