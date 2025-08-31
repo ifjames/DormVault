@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -99,7 +99,6 @@ export default function Login() {
         <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-purple-300/20 to-pink-300/20 rounded-full blur-3xl transform -translate-x-32 -translate-y-32"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-purple-300/20 to-blue-300/20 rounded-full blur-3xl transform translate-x-32 translate-y-32"></div>
       </div>
-      
       {/* Desktop Layout */}
       <div className="hidden lg:flex min-h-screen items-center justify-center p-8">
         <div className="w-full max-w-6xl mx-auto">
@@ -110,7 +109,7 @@ export default function Login() {
                 <div className="max-w-md mx-auto">
                   <div className="flex items-center justify-center mb-8">
                     <img src={logoUrl} alt="DormVault" className="h-16 w-16 mr-3" />
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">DormVault</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Login</h1>
                   </div>
                   
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -140,16 +139,12 @@ export default function Login() {
                           {...form.register("password")}
                           data-testid="input-password"
                         />
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setShowPassword(!showPassword);
-                          }}
-                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                        <div
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
+                          onClick={() => setShowPassword(!showPassword)}
                         >
                           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                        </button>
+                        </div>
                       </div>
                       {form.formState.errors.password && (
                         <p className="text-sm text-red-500 mt-1">{form.formState.errors.password.message}</p>
@@ -161,10 +156,7 @@ export default function Login() {
                         type="checkbox" 
                         id="remember" 
                         checked={rememberMe}
-                        onChange={(e) => {
-                          e.preventDefault();
-                          setRememberMe(e.target.checked);
-                        }}
+                        onChange={(e) => setRememberMe(e.target.checked)}
                         className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded" 
                       />
                       <label htmlFor="remember" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">Remember me</label>
@@ -203,7 +195,6 @@ export default function Login() {
           </div>
         </div>
       </div>
-      
       {/* Mobile Layout */}
       <div className="lg:hidden min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-sm">
@@ -243,16 +234,12 @@ export default function Login() {
                     {...form.register("password")}
                     data-testid="input-password-mobile"
                   />
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setShowPassword(!showPassword);
-                    }}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  <div
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
+                    onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+                  </div>
                 </div>
                 {form.formState.errors.password && (
                   <p className="text-sm text-red-500 mt-1">{form.formState.errors.password.message}</p>
@@ -264,10 +251,7 @@ export default function Login() {
                   type="checkbox" 
                   id="remember-mobile" 
                   checked={rememberMe}
-                  onChange={(e) => {
-                    e.preventDefault();
-                    setRememberMe(e.target.checked);
-                  }}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded" 
                 />
                 <label htmlFor="remember-mobile" className="ml-2 text-gray-700 dark:text-gray-300">Remember me</label>
