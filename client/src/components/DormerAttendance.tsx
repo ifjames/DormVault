@@ -306,9 +306,7 @@ export default function DormerAttendance() {
                   {(() => {
                     const todayStr = new Date().toISOString().split('T')[0];
                     const isToday = todayStr === attendance.date;
-                    if (attendance.day <= 5) { // Debug first few days
-                      console.log(`Day ${attendance.day}: ${attendance.date} === ${todayStr} ? ${isToday}`);
-                    }
+                    console.log(`Row ${index}: Day ${attendance.day} (${attendance.date}) === ${todayStr} ? ${isToday}`);
                     return isToday ? <Badge variant="secondary" className="ml-1 text-xs">Today</Badge> : null;
                   })()}
                 </div>
