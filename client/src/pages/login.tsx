@@ -31,7 +31,7 @@ export default function Login() {
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
-    mode: "onSubmit",
+    mode: "onChange",
     defaultValues: {
       email: localStorage.getItem('rememberedEmail') || "",
       password: "",
@@ -41,6 +41,7 @@ export default function Login() {
   // Debug form state
   console.log("Form errors:", form.formState.errors);
   console.log("Form values:", form.watch());
+  console.log("Form registration test:", form.register("email"));
 
   const onSubmit = async (data: LoginForm) => {
     console.log("Form data:", data); // Debug log
@@ -124,6 +125,10 @@ export default function Login() {
                         placeholder="james@example.com"
                         className="w-full h-12 px-4 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
                         {...form.register("email")}
+                        onChange={(e) => {
+                          console.log("Email input change:", e.target.value);
+                          form.register("email").onChange(e);
+                        }}
                         data-testid="input-email"
                       />
                       {form.formState.errors.email && (
@@ -140,6 +145,10 @@ export default function Login() {
                           placeholder="Enter 6 character or more"
                           className="w-full h-12 px-4 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
                           {...form.register("password")}
+                          onChange={(e) => {
+                            console.log("Password input change:", e.target.value);
+                            form.register("password").onChange(e);
+                          }}
                           data-testid="input-password"
                         />
                         <div
@@ -219,6 +228,10 @@ export default function Login() {
                   placeholder="james@example.com"
                   className="w-full h-11 px-4 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
                   {...form.register("email")}
+                  onChange={(e) => {
+                    console.log("Mobile email input change:", e.target.value);
+                    form.register("email").onChange(e);
+                  }}
                   data-testid="input-email-mobile"
                 />
                 {form.formState.errors.email && (
@@ -235,6 +248,10 @@ export default function Login() {
                     placeholder="Enter your password"
                     className="w-full h-11 px-4 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
                     {...form.register("password")}
+                    onChange={(e) => {
+                      console.log("Mobile password input change:", e.target.value);
+                      form.register("password").onChange(e);
+                    }}
                     data-testid="input-password-mobile"
                   />
                   <div
