@@ -49,6 +49,29 @@ export default function Dashboard() {
     );
   }
 
+  // Helper function to format date ranges
+  const formatDateRange = (startDate: string, endDate: string) => {
+    try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      const startFormatted = start.toLocaleDateString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+      const endFormatted = end.toLocaleDateString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+      
+      return `${startFormatted} - ${endFormatted}`;
+    } catch (error) {
+      return `${startDate} - ${endDate}`;
+    }
+  };
+
   const recentActivities = [
     ...(bills?.slice(0, 2).map((bill: any) => {
       // Handle Firestore timestamp conversion
@@ -75,7 +98,7 @@ export default function Dashboard() {
         type: "bill",
         icon: Zap,
         title: "Electricity bill calculated",
-        description: `Bill for period ${bill.startDate} - ${bill.endDate} (₱${parseFloat(bill.totalAmount).toLocaleString()})`,
+        description: `Bill for period ${formatDateRange(bill.startDate, bill.endDate)} (₱${parseFloat(bill.totalAmount).toLocaleString()})`,
         time: timeString,
         color: "text-blue-600 bg-blue-50 dark:bg-blue-950",
       };

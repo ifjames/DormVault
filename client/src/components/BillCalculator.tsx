@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Calculator, Plus, Trash2, CheckCircle, Eye, Calendar, Zap } from "lucide-react";
 import { dormersService, billsService } from "@/lib/firestoreService";
@@ -177,6 +178,28 @@ export default function BillCalculator() {
     }
   };
 
+  const formatDateRange = (startDate: string, endDate: string) => {
+    try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      const startFormatted = start.toLocaleDateString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+      const endFormatted = end.toLocaleDateString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+      
+      return `${startFormatted} - ${endFormatted}`;
+    } catch (error) {
+      return `${startDate} - ${endDate}`;
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <Card className="lg:col-span-2">
@@ -266,12 +289,21 @@ export default function BillCalculator() {
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
                       <div className="md:col-span-3 space-y-2">
                         <Label>Person Name</Label>
-                        <Input
+                        <Select
                           value={person.name}
-                          onChange={(e) => updatePerson(index, "name", e.target.value)}
-                          placeholder="Enter name"
-                          data-testid={`input-person-name-${index}`}
-                        />
+                          onValueChange={(value) => updatePerson(index, "name", value)}
+                        >
+                          <SelectTrigger data-testid={`select-person-name-${index}`}>
+                            <SelectValue placeholder="Select dormer" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {dormers?.filter((d: any) => d.isActive).map((dormer: any) => (
+                              <SelectItem key={dormer.id} value={dormer.name}>
+                                {dormer.name} (Room {dormer.room})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label>Days Stayed</Label>
@@ -324,7 +356,7 @@ export default function BillCalculator() {
             <div className="space-y-4" data-testid="bill-result">
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-4 rounded-lg border">
                 <div className="mb-3">
-                  <strong>Period:</strong> {billResult.startDate} - {billResult.endDate}
+                  <strong>Period:</strong> {formatDateRange(billResult.startDate, billResult.endDate)}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3 mb-3">
@@ -409,7 +441,7 @@ export default function BillCalculator() {
                       <div>
                         <h4 className="font-semibold text-sm">{formatBillMonth(bill.startDate, bill.endDate)}</h4>
                         <p className="text-xs text-muted-foreground">
-                          {bill.startDate} to {bill.endDate}
+                          {formatDateRange(bill.startDate, bill.endDate)}
                         </p>
                       </div>
                       <Zap className="h-4 w-4 text-blue-600" />
@@ -467,7 +499,7 @@ export default function BillCalculator() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <small className="text-muted-foreground">Period</small>
-                    <div className="font-medium">{selectedBill.startDate} - {selectedBill.endDate}</div>
+                    <div className="font-medium">{formatDateRange(selectedBill.startDate, selectedBill.endDate)}</div>
                   </div>
                   <div>
                     <small className="text-muted-foreground">Rate per kWh</small>
