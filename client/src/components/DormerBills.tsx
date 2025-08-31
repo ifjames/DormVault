@@ -58,12 +58,19 @@ export default function DormerBills() {
     queryFn: async () => {
       if (!dormerData?.id) return [];
       
+      console.log("Fetching bills for dormer ID:", dormerData.id);
+      
       const billsData: Bill[] = [];
       
       // Fetch bill shares for electricity bills
       const billSharesRef = collection(db, COLLECTIONS.BILL_SHARES);
       const billSharesQuery = query(billSharesRef, where("dormerId", "==", dormerData.id));
       const billSharesSnapshot = await getDocs(billSharesQuery);
+      
+      console.log("Found bill shares:", billSharesSnapshot.docs.length);
+      billSharesSnapshot.docs.forEach(doc => {
+        console.log("Bill share:", doc.id, doc.data());
+      });
       
       for (const shareDoc of billSharesSnapshot.docs) {
         const shareData = shareDoc.data();

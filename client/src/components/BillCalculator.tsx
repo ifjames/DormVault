@@ -169,12 +169,28 @@ export default function BillCalculator({ userRole = "admin" }: BillCalculatorPro
       totalAmount: billResult.totalBill.toString(),
     };
 
-    const shares = billResult.individualShares.map((share: any) => ({
-      dormerId: dormers?.find((d: any) => d.name === share.name)?.id || "",
-      daysStayed: share.days,
-      shareAmount: share.amount.toString(),
-    }));
+    console.log("Available dormers:", dormers);
+    console.log("Individual shares:", billResult.individualShares);
 
+    const shares = billResult.individualShares.map((share: any) => {
+      // Improved name matching: case-insensitive and trim whitespace
+      const foundDormer = dormers?.find((d: any) => 
+        d.name.toLowerCase().trim() === share.name.toLowerCase().trim()
+      );
+      console.log(`Looking for dormer with name "${share.name}":`, foundDormer);
+      
+      if (!foundDormer) {
+        console.warn(`⚠️ No dormer found for name: "${share.name}". Available dormers:`, dormers?.map((d: any) => d.name));
+      }
+      
+      return {
+        dormerId: foundDormer?.id || "",
+        daysStayed: share.days,
+        shareAmount: share.amount.toString(),
+      };
+    });
+
+    console.log("Final shares to save:", shares);
     saveBillMutation.mutate({ bill: billData, shares });
   };
 
