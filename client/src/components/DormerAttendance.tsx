@@ -40,13 +40,18 @@ export default function DormerAttendance() {
     if (user?.email) {
       const fetchDormerData = async () => {
         try {
+          console.log('Fetching dormer data for email:', user.email);
           const dormersRef = collection(db, COLLECTIONS.DORMERS);
           const q = query(dormersRef, where("email", "==", user.email));
           const querySnapshot = await getDocs(q);
           
           if (!querySnapshot.empty) {
             const dormerDoc = querySnapshot.docs[0];
-            setDormerData({ id: dormerDoc.id, ...dormerDoc.data() } as DormerData);
+            const dormerData = { id: dormerDoc.id, ...dormerDoc.data() } as DormerData;
+            console.log('Found dormer data:', dormerData);
+            setDormerData(dormerData);
+          } else {
+            console.log('No dormer found for email:', user.email);
           }
         } catch (error) {
           console.error("Error fetching dormer data:", error);
@@ -67,42 +72,62 @@ export default function DormerAttendance() {
     queryFn: async () => {
       if (!dormerData?.id) return [];
       
-      // Create attendance collection reference
-      const attendanceRef = collection(db, 'attendance');
-      const q = query(
-        attendanceRef,
-        where("dormerId", "==", dormerData.id),
-        where("month", "==", currentMonthStr),
-        orderBy("date")
-      );
-      
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      try {
+        // Create attendance collection reference
+        const attendanceRef = collection(db, 'attendance');
+        const q = query(
+          attendanceRef,
+          where("dormerId", "==", dormerData.id),
+          where("month", "==", currentMonthStr)
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const results = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log('Fetched attendance:', results);
+        return results;
+      } catch (error) {
+        console.error('Error fetching attendance:', error);
+        return [];
+      }
     },
     enabled: !!dormerData?.id,
   });
 
   const updateAttendanceMutation = useMutation({
     mutationFn: async (data: { dormerId: string; date: string; isPresent: boolean; note?: string }) => {
-      const attendanceRef = doc(db, 'attendance', `${data.dormerId}_${data.date}`);
-      await setDoc(attendanceRef, {
-        dormerId: data.dormerId,
-        date: data.date,
-        month: currentMonthStr,
-        isPresent: data.isPresent,
-        note: data.note || '',
-        updatedAt: new Date()
-      }, { merge: true });
-      return data;
+      try {
+        console.log('Updating attendance:', data);
+        const attendanceRef = doc(db, 'attendance', `${data.dormerId}_${data.date}`);
+        const attendanceData = {
+          dormerId: data.dormerId,
+          date: data.date,
+          month: currentMonthStr,
+          isPresent: data.isPresent,
+          note: data.note || '',
+          updatedAt: new Date()
+        };
+        console.log('Saving to Firestore:', attendanceData);
+        await setDoc(attendanceRef, attendanceData, { merge: true });
+        console.log('Successfully saved attendance');
+        return data;
+      } catch (error) {
+        console.error('Error saving attendance:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Attendance mutation successful:', data);
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      toast({
+        title: "Attendance Updated",
+        description: "Your attendance has been saved successfully",
+      });
     },
     onError: (error) => {
       console.error('Attendance update error:', error);
       toast({
         title: "Error",
-        description: "Failed to update attendance",
+        description: "Failed to update attendance. Please check your connection.",
         variant: "destructive",
       });
     },
@@ -130,7 +155,7 @@ export default function DormerAttendance() {
 
   const getAttendanceNote = (date: string) => {
     const record = attendance?.find((a: any) => a.date === date);
-    return record?.note || '';
+    return (record as any)?.note || '';
   };
 
   const updateNote = (date: string, note: string) => {
@@ -244,7 +269,7 @@ export default function DormerAttendance() {
                 isCurrentMonth && attendance.day === today ? 'bg-blue-50 dark:bg-blue-950/30' : ''
               }`}>
                 <div className="p-2 border-r font-medium text-sm">
-                  {index === 0 ? dormerData.name.split('@')[0] : ""}
+                  {index === 0 ? dormerData?.name?.split('@')[0] || dormerData?.name || "" : ""}
                 </div>
                 <div className="p-2 border-r text-center font-mono text-sm">
                   {attendance.day}
