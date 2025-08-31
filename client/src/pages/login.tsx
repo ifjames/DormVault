@@ -12,8 +12,14 @@ import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useLocation } from "wouter";
 
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email").min(1, "Email is required"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().email("Please enter a valid email").optional().or(z.literal("")),
+  password: z.string().optional().or(z.literal("")),
+}).refine((data) => data.email && data.email.length > 0, {
+  message: "Email is required",
+  path: ["email"],
+}).refine((data) => data.password && data.password.length > 0, {
+  message: "Password is required", 
+  path: ["password"],
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -31,7 +37,7 @@ export default function Login() {
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
-    mode: "onChange",
+    mode: "onSubmit",
     defaultValues: {
       email: localStorage.getItem('rememberedEmail') || "",
       password: "",
