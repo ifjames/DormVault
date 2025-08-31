@@ -54,7 +54,9 @@ export default function DormerAttendance() {
   
   const billingPeriodStr = `${billingPeriod.startDate.getFullYear()}-${String(billingPeriod.startDate.getMonth() + 1).padStart(2, '0')}`;
 
-  // Remove debug logging
+  // Debug today's date comparison
+  const todayStr = new Date().toISOString().split('T')[0];
+  console.log('Today string for comparison:', todayStr);
 
   // Fetch dormer data when user is authenticated
   useEffect(() => {
@@ -301,9 +303,14 @@ export default function DormerAttendance() {
                 </div>
                 <div className="p-2 border-r text-center font-mono text-sm">
                   {attendance.day}
-                  {new Date().toISOString().split('T')[0] === attendance.date && (
-                    <Badge variant="secondary" className="ml-1 text-xs">Today</Badge>
-                  )}
+                  {(() => {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const isToday = todayStr === attendance.date;
+                    if (attendance.day <= 5) { // Debug first few days
+                      console.log(`Day ${attendance.day}: ${attendance.date} === ${todayStr} ? ${isToday}`);
+                    }
+                    return isToday ? <Badge variant="secondary" className="ml-1 text-xs">Today</Badge> : null;
+                  })()}
                 </div>
                 <div className="p-2 border-r text-center">
                   <Checkbox
