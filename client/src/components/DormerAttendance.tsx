@@ -54,33 +54,7 @@ export default function DormerAttendance() {
   
   const billingPeriodStr = `${billingPeriod.startDate.getFullYear()}-${String(billingPeriod.startDate.getMonth() + 1).padStart(2, '0')}`;
 
-  // Debug logging  
-  console.log('Today is:', new Date().toDateString());
-  console.log('Current day:', new Date().getDate());
-  console.log('Billing period start:', billingPeriod.startDate.toDateString()); 
-  console.log('Billing period end:', billingPeriod.endDate.toDateString());
-  console.log('Billing period string:', billingPeriodStr);
-  
-  // Let's also debug the generated days
-  const generatedDays = (() => {
-    const days = [];
-    const currentDate = new Date(billingPeriod.startDate);
-    
-    while (currentDate <= billingPeriod.endDate) {
-      const dateStr = currentDate.toISOString().split('T')[0];
-      days.push({
-        date: dateStr,
-        day: currentDate.getDate(),
-        month: currentDate.getMonth(),
-        year: currentDate.getFullYear(),
-      });
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-    
-    return days;
-  })();
-  
-  console.log('Generated attendance days:', generatedDays.map(d => `${d.date} (day ${d.day})`));
+  // Remove debug logging
 
   // Fetch dormer data when user is authenticated
   useEffect(() => {
@@ -187,13 +161,16 @@ export default function DormerAttendance() {
     // Generate all days from start date to end date
     while (currentDate <= billingPeriod.endDate) {
       const dateStr = currentDate.toISOString().split('T')[0];
+      // Create a new date object to avoid mutation issues
+      const dayDate = new Date(currentDate);
       days.push({
         date: dateStr,
-        day: currentDate.getDate(),
-        month: currentDate.getMonth(),
-        year: currentDate.getFullYear(),
+        day: dayDate.getDate(), // Get the correct day of month
+        month: dayDate.getMonth(),
+        year: dayDate.getFullYear(),
         isPresent: isAttendanceMarked(dateStr),
       });
+      // Move to next day
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
