@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { db, COLLECTIONS } from "@/lib/firebase";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, doc, getDoc } from "firebase/firestore";
 import { CreditCard, Calendar, DollarSign, AlertCircle, CheckCircle } from "lucide-react";
 
 interface Bill {
@@ -68,42 +68,56 @@ export default function DormerBills() {
       for (const shareDoc of billSharesSnapshot.docs) {
         const shareData = shareDoc.data();
         
-        // Get the associated bill
-        const billsRef = collection(db, COLLECTIONS.BILLS);
-        const billsQuery = query(billsRef, where("__name__", "==", shareData.billId));
-        const billsSnapshot = await getDocs(billsQuery);
+        // Get the associated bill using doc() instead of query
+        const billDocRef = doc(db, COLLECTIONS.BILLS, shareData.billId);
+        const billDocSnap = await getDoc(billDocRef);
         
-        if (!billsSnapshot.empty) {
-          const billData = billsSnapshot.docs[0].data();
+        if (billDocSnap.exists()) {
+          const billData = billDocSnap.data();
+          
+          // Check if this bill share has been paid
+          const paymentsRef = collection(db, COLLECTIONS.PAYMENTS);
+          const paymentsQuery = query(
+            paymentsRef, 
+            where("dormerId", "==", dormerData.id),
+            where("billShareId", "==", shareDoc.id)
+          );
+          const paymentsSnapshot = await getDocs(paymentsQuery);
+          
+          const isPaid = !paymentsSnapshot.empty;
+          const isOverdue = new Date() > new Date(billData.endDate.toDate());
+          
           billsData.push({
             id: shareDoc.id,
             title: `Electricity Bill - ${new Date(billData.startDate.toDate()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
             amount: parseFloat(shareData.shareAmount),
             dueDate: billData.endDate.toDate().toISOString().split('T')[0],
-            status: "pending", // We'll check payments to determine actual status
+            status: isPaid ? "paid" : (isOverdue ? "overdue" : "pending"),
             description: `Your share: ${shareData.daysStayed} days stayed`,
             type: "electricity" as const
           });
         }
       }
       
-      // Fetch payments to see what's been paid
+      // Fetch rent payments as bills
       const paymentsRef = collection(db, COLLECTIONS.PAYMENTS);
       const paymentsQuery = query(paymentsRef, where("dormerId", "==", dormerData.id));
       const paymentsSnapshot = await getDocs(paymentsQuery);
       
-      // Add rent payments as bills
       paymentsSnapshot.docs.forEach(paymentDoc => {
         const paymentData = paymentDoc.data();
-        billsData.push({
-          id: paymentDoc.id,
-          title: `Rent - ${paymentData.month}`,
-          amount: parseFloat(paymentData.amount),
-          dueDate: paymentData.paymentDate.toDate().toISOString().split('T')[0],
-          status: paymentData.status || "paid",
-          description: "Monthly room rent payment",
-          type: "rent" as const
-        });
+        // Only show rent payments, skip bill payments
+        if (!paymentData.billShareId) {
+          billsData.push({
+            id: paymentDoc.id,
+            title: `Rent - ${paymentData.month}`,
+            amount: parseFloat(paymentData.amount),
+            dueDate: paymentData.paymentDate.toDate().toISOString().split('T')[0],
+            status: paymentData.status || "paid",
+            description: "Monthly room rent payment",
+            type: "rent" as const
+          });
+        }
       });
       
       return billsData.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
