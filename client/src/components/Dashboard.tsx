@@ -1,0 +1,175 @@
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Users, DollarSign, AlertTriangle, Zap, Clock, CheckCircle, UserPlus, Download } from "lucide-react";
+
+export default function Dashboard() {
+  const { data: analytics, isLoading } = useQuery({
+    queryKey: ["/api/analytics"],
+  });
+
+  const { data: bills } = useQuery({
+    queryKey: ["/api/bills"],
+  });
+
+  const { data: payments } = useQuery({
+    queryKey: ["/api/payments"],
+  });
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i} className="animate-pulse">
+            <CardContent className="p-6">
+              <div className="h-16 bg-muted rounded"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  const recentActivities = [
+    ...(bills?.slice(0, 2).map((bill: any) => ({
+      type: "bill",
+      icon: Zap,
+      title: "Electricity bill calculated",
+      description: `Bill for period ${bill.startDate} - ${bill.endDate} (₱${parseFloat(bill.totalAmount).toLocaleString()})`,
+      time: new Date(bill.createdAt).toLocaleString(),
+      color: "text-blue-600 bg-blue-50 dark:bg-blue-950",
+    })) || []),
+    ...(payments?.slice(0, 3).map((payment: any) => ({
+      type: "payment",
+      icon: CheckCircle,
+      title: "Payment received",
+      description: `Payment of ₱${parseFloat(payment.amount).toLocaleString()} for ${payment.month}`,
+      time: new Date(payment.createdAt).toLocaleString(),
+      color: "text-green-600 bg-green-50 dark:bg-green-950",
+    })) || []),
+  ].slice(0, 3);
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-0">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100 text-sm font-medium">Active Dormers</p>
+                <p className="text-3xl font-bold" data-testid="stat-active-dormers">
+                  {analytics?.activeDormers || 0}
+                </p>
+              </div>
+              <Users className="h-8 w-8 text-blue-200" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-green-600 to-green-700 text-white border-0">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-100 text-sm font-medium">Monthly Revenue</p>
+                <p className="text-3xl font-bold" data-testid="stat-monthly-revenue">
+                  ₱{analytics?.monthlyRevenue?.toLocaleString() || "0"}
+                </p>
+              </div>
+              <DollarSign className="h-8 w-8 text-green-200" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-orange-100 text-sm font-medium">Pending Payments</p>
+                <p className="text-3xl font-bold" data-testid="stat-pending-payments">
+                  {analytics?.pendingPayments || 0}
+                </p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-orange-200" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-cyan-500 to-cyan-600 text-white border-0">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-cyan-100 text-sm font-medium">Avg. Electric Bill</p>
+                <p className="text-3xl font-bold" data-testid="stat-avg-electric-bill">
+                  ₱{analytics?.avgElectricBill || 0}
+                </p>
+              </div>
+              <Zap className="h-8 w-8 text-cyan-200" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Activity */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Clock className="h-5 w-5" />
+              <span>Recent Activity</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {recentActivities.length > 0 ? (
+              recentActivities.map((activity, index) => (
+                <div key={index} className="flex items-start space-x-3" data-testid={`activity-${index}`}>
+                  <div className={`p-2 rounded-full ${activity.color}`}>
+                    <activity.icon className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{activity.title}</p>
+                    <p className="text-muted-foreground text-sm">{activity.description}</p>
+                    <p className="text-xs text-muted-foreground">{activity.time}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No recent activity</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Zap className="h-5 w-5" />
+              <span>Quick Actions</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button className="w-full justify-start" variant="outline" data-testid="button-quick-calculator">
+              <Calculator className="h-4 w-4 mr-2" />
+              Calculate New Bill
+            </Button>
+            <Button className="w-full justify-start" variant="outline" data-testid="button-quick-payment">
+              <CreditCard className="h-4 w-4 mr-2" />
+              Record Payment
+            </Button>
+            <Button className="w-full justify-start" variant="outline" data-testid="button-quick-analytics">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              View Analytics
+            </Button>
+            <Button className="w-full justify-start" variant="outline" data-testid="button-export-data">
+              <Download className="h-4 w-4 mr-2" />
+              Export Data
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
