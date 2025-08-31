@@ -54,12 +54,33 @@ export default function DormerAttendance() {
   
   const billingPeriodStr = `${billingPeriod.startDate.getFullYear()}-${String(billingPeriod.startDate.getMonth() + 1).padStart(2, '0')}`;
 
-  // Debug logging
+  // Debug logging  
   console.log('Today is:', new Date().toDateString());
   console.log('Current day:', new Date().getDate());
-  console.log('Billing period start:', billingPeriod.startDate.toDateString());
+  console.log('Billing period start:', billingPeriod.startDate.toDateString()); 
   console.log('Billing period end:', billingPeriod.endDate.toDateString());
   console.log('Billing period string:', billingPeriodStr);
+  
+  // Let's also debug the generated days
+  const generatedDays = (() => {
+    const days = [];
+    const currentDate = new Date(billingPeriod.startDate);
+    
+    while (currentDate <= billingPeriod.endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      days.push({
+        date: dateStr,
+        day: currentDate.getDate(),
+        month: currentDate.getMonth(),
+        year: currentDate.getFullYear(),
+      });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return days;
+  })();
+  
+  console.log('Generated attendance days:', generatedDays.map(d => `${d.date} (day ${d.day})`));
 
   // Fetch dormer data when user is authenticated
   useEffect(() => {
