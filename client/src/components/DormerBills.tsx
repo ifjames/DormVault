@@ -111,7 +111,7 @@ export default function DormerBills() {
     enabled: !!dormerData?.id,
   });
 
-  if (authLoading) {
+  if (authLoading || (user && !dormerData)) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
@@ -122,7 +122,7 @@ export default function DormerBills() {
     );
   }
 
-  if (!user || !dormerData) {
+  if (!user) {
     return (
       <Card>
         <CardContent className="p-6 text-center">

@@ -83,25 +83,23 @@ export default function DormerAttendance() {
   });
 
   const updateAttendanceMutation = useMutation({
-    mutationFn: async (data: { dormerId: string; date: string; isPresent: boolean }) => {
+    mutationFn: async (data: { dormerId: string; date: string; isPresent: boolean; note?: string }) => {
       const attendanceRef = doc(db, 'attendance', `${data.dormerId}_${data.date}`);
       await setDoc(attendanceRef, {
         dormerId: data.dormerId,
         date: data.date,
         month: currentMonthStr,
         isPresent: data.isPresent,
+        note: data.note || '',
         updatedAt: new Date()
       }, { merge: true });
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      toast({
-        title: "Attendance Updated",
-        description: "Your attendance has been recorded successfully",
-      });
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Attendance update error:', error);
       toast({
         title: "Error",
         description: "Failed to update attendance",
@@ -130,14 +128,32 @@ export default function DormerAttendance() {
     return attendance?.some((a: any) => a.date === date && a.isPresent) || false;
   };
 
+  const getAttendanceNote = (date: string) => {
+    const record = attendance?.find((a: any) => a.date === date);
+    return record?.note || '';
+  };
+
+  const updateNote = (date: string, note: string) => {
+    if (!dormerData?.id) return;
+    
+    updateAttendanceMutation.mutate({
+      dormerId: dormerData.id,
+      date,
+      isPresent: isAttendanceMarked(date),
+      note,
+    });
+  };
+
   const toggleAttendance = (date: string) => {
     if (!dormerData?.id) return;
     
     const isCurrentlyMarked = isAttendanceMarked(date);
+    const currentNote = getAttendanceNote(date);
     updateAttendanceMutation.mutate({
       dormerId: dormerData.id,
       date,
       isPresent: !isCurrentlyMarked,
+      note: currentNote,
     });
   };
 
@@ -150,7 +166,7 @@ export default function DormerAttendance() {
     "July", "August", "September", "October", "November", "December"
   ];
 
-  if (authLoading) {
+  if (authLoading || (user && !dormerData)) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
@@ -161,7 +177,7 @@ export default function DormerAttendance() {
     );
   }
 
-  if (!user || !dormerData) {
+  if (!user) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
@@ -215,28 +231,28 @@ export default function DormerAttendance() {
 
           {/* Attendance Grid */}
           <div className="border rounded-lg overflow-hidden">
-            <div className="grid grid-cols-5 gap-0 bg-muted text-sm font-medium">
-              <div className="p-3 border-r border-b">Name</div>
-              <div className="p-3 border-r border-b text-center">Day</div>
-              <div className="p-3 border-r border-b text-center">Stayed?</div>
-              <div className="p-3 border-r border-b text-center">Note</div>
-              <div className="p-3 border-b text-center">Info</div>
+            <div className="grid grid-cols-5 gap-0 bg-muted text-xs font-medium">
+              <div className="p-2 border-r border-b">Name</div>
+              <div className="p-2 border-r border-b text-center">Day</div>
+              <div className="p-2 border-r border-b text-center">Stayed?</div>
+              <div className="p-2 border-r border-b text-center">Note</div>
+              <div className="p-2 border-b text-center">Info</div>
             </div>
             
             {attendanceData.map((attendance, index) => (
               <div key={attendance.day} className={`grid grid-cols-5 gap-0 border-b hover:bg-muted/30 transition-colors ${
                 isCurrentMonth && attendance.day === today ? 'bg-blue-50 dark:bg-blue-950/30' : ''
               }`}>
-                <div className="p-3 border-r font-medium">
-                  {index === 0 ? dormerData.name : ""}
+                <div className="p-2 border-r font-medium text-sm">
+                  {index === 0 ? dormerData.name.split('@')[0] : ""}
                 </div>
-                <div className="p-3 border-r text-center font-mono">
+                <div className="p-2 border-r text-center font-mono text-sm">
                   {attendance.day}
                   {isCurrentMonth && attendance.day === today && (
-                    <Badge variant="secondary" className="ml-2 text-xs">Today</Badge>
+                    <Badge variant="secondary" className="ml-1 text-xs">Today</Badge>
                   )}
                 </div>
-                <div className="p-3 border-r text-center">
+                <div className="p-2 border-r text-center">
                   <Checkbox
                     checked={attendance.isPresent}
                     onCheckedChange={() => toggleAttendance(attendance.date)}
@@ -244,10 +260,17 @@ export default function DormerAttendance() {
                     data-testid={`attendance-${attendance.day}`}
                   />
                 </div>
-                <div className="p-3 border-r text-center text-sm text-muted-foreground">
-                  {/* Note field - could be expanded in the future */}
+                <div className="p-2 border-r text-center">
+                  <input
+                    type="text"
+                    placeholder="Add note..."
+                    className="w-24 text-xs p-1 border rounded bg-background"
+                    value={getAttendanceNote(attendance.date)}
+                    onChange={(e) => updateNote(attendance.date, e.target.value)}
+                    disabled={updateAttendanceMutation.isPending}
+                  />
                 </div>
-                <div className="p-3 text-center text-sm">
+                <div className="p-2 text-center text-xs">
                   {index === 0 && (
                     <div className="text-left">
                       <div className="text-xs text-muted-foreground">
