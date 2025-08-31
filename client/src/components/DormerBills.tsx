@@ -3,10 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { db, COLLECTIONS } from "@/lib/firebase";
 import { collection, query, where, getDocs, orderBy, doc, getDoc } from "firebase/firestore";
-import { CreditCard, Calendar, DollarSign, AlertCircle, CheckCircle } from "lucide-react";
+import { CreditCard, Calendar, DollarSign, AlertCircle, CheckCircle, Phone, User } from "lucide-react";
+import gcashQR from "@/assets/gcash-qr.png";
 
 interface Bill {
   id: string;
@@ -30,6 +32,8 @@ interface DormerData {
 export default function DormerBills() {
   const { user, isLoading: authLoading } = useFirebaseAuth();
   const [dormerData, setDormerData] = useState<DormerData | null>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
 
   // Fetch dormer data when user is authenticated
   useEffect(() => {
@@ -200,6 +204,17 @@ export default function DormerBills() {
   const totalPending = allBills.filter(b => b.status === "pending").reduce((sum, b) => sum + b.amount, 0);
   const totalOverdue = allBills.filter(b => b.status === "overdue").reduce((sum, b) => sum + b.amount, 0);
 
+  const handlePayOverdue = (bill: Bill) => {
+    setSelectedBill(bill);
+    setPaymentModalOpen(true);
+  };
+
+  const handlePaymentComplete = () => {
+    setPaymentModalOpen(false);
+    setSelectedBill(null);
+    // Here you could add logic to mark the bill as paid or send a notification
+  };
+
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
@@ -293,7 +308,13 @@ export default function DormerBills() {
                   )}
                   
                   {bill.status === "overdue" && (
-                    <Button size="sm" variant="destructive" data-testid={`pay-overdue-${bill.id}`} className="w-full sm:w-auto">
+                    <Button 
+                      size="sm" 
+                      variant="destructive" 
+                      data-testid={`pay-overdue-${bill.id}`} 
+                      className="w-full sm:w-auto"
+                      onClick={() => handlePayOverdue(bill)}
+                    >
                       Pay Overdue
                     </Button>
                   )}
@@ -310,6 +331,72 @@ export default function DormerBills() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Payment Modal */}
+      <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">Pay Bill via GCash</DialogTitle>
+          </DialogHeader>
+          
+          {selectedBill && (
+            <div className="space-y-6">
+              {/* Bill Details */}
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="font-semibold text-lg">{selectedBill.title}</div>
+                <div className="text-2xl font-bold text-destructive">₱{selectedBill.amount.toFixed(2)}</div>
+                <div className="text-sm text-muted-foreground">{selectedBill.description}</div>
+              </div>
+
+              {/* QR Code */}
+              <div className="text-center">
+                <div className="bg-white p-4 rounded-lg inline-block shadow-sm">
+                  <img 
+                    src={gcashQR} 
+                    alt="GCash QR Code" 
+                    className="w-64 h-auto mx-auto"
+                  />
+                </div>
+              </div>
+
+              {/* Account Details */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-center space-x-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">JAMES RAPHAEL CASTILLO</span>
+                </div>
+                <div className="flex items-center justify-center space-x-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">09276681520</span>
+                </div>
+              </div>
+
+              {/* Instructions */}
+              <div className="text-center text-sm text-muted-foreground">
+                <p>Scan the QR code or send to the mobile number above.</p>
+                <p>Click "Complete" after making the payment.</p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => setPaymentModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  className="flex-1"
+                  onClick={handlePaymentComplete}
+                >
+                  Complete
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
