@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Users, Plus, Eye, Edit, Trash2, UserCheck, UserX, Calendar } from "lucide-react";
 import { dormersService } from "@/lib/firestoreService";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 const dormerSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -31,6 +33,7 @@ export default function DormerManagement() {
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingDormer, setEditingDormer] = useState<any>(null);
+  const [attendanceData, setAttendanceData] = useState<Record<string, number>>({});
 
   const { data: dormers, isLoading } = useQuery({
     queryKey: ["dormers"],
@@ -130,9 +133,54 @@ export default function DormerManagement() {
     setIsAddDialogOpen(true);
   };
 
+  // Calculate current billing period month string
+  const getCurrentBillingPeriod = () => {
+    const today = new Date();
+    const currentDay = today.getDate();
+    
+    if (currentDay < 22) {
+      // Previous month 22nd to current month 21st
+      return `${today.getFullYear()}-${String(today.getMonth()).padStart(2, '0')}`;
+    } else {
+      // Current month 22nd to next month 21st  
+      return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    }
+  };
+
+  // Fetch attendance data for all dormers
+  useEffect(() => {
+    const fetchAttendanceData = async () => {
+      if (!dormers || dormers.length === 0) return;
+      
+      const currentMonth = getCurrentBillingPeriod();
+      const attendanceMap: Record<string, number> = {};
+      
+      try {
+        // Fetch attendance for each dormer
+        for (const dormer of dormers) {
+          const attendanceRef = collection(db, 'attendance');
+          const q = query(
+            attendanceRef,
+            where("dormerId", "==", dormer.id),
+            where("month", "==", currentMonth)
+          );
+          
+          const querySnapshot = await getDocs(q);
+          const presentDays = querySnapshot.docs.filter(doc => doc.data().isPresent).length;
+          attendanceMap[dormer.id] = presentDays;
+        }
+        
+        setAttendanceData(attendanceMap);
+      } catch (error) {
+        console.error('Error fetching attendance data:', error);
+      }
+    };
+
+    fetchAttendanceData();
+  }, [dormers]);
+
   const calculateDaysStayed = (dormer: any) => {
-    // This will be calculated from the attendance table in the future
-    return 0;
+    return attendanceData[dormer.id] || 0;
   };
 
   const activeDormers = dormers?.filter((d: any) => d.isActive) || [];

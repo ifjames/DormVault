@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Calculator, Plus, Trash2, CheckCircle } from "lucide-react";
+import { Calculator, Plus, Trash2, CheckCircle, Eye, Calendar, Zap } from "lucide-react";
 import { dormersService, billsService } from "@/lib/firestoreService";
 
 const billCalculatorSchema = z.object({
@@ -30,10 +31,17 @@ export default function BillCalculator() {
   const queryClient = useQueryClient();
   const [people, setPeople] = useState([{ name: "", days: 1 }]);
   const [billResult, setBillResult] = useState<any>(null);
+  const [selectedBill, setSelectedBill] = useState<any>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   const { data: dormers } = useQuery({
     queryKey: ["dormers"],
     queryFn: dormersService.getAll,
+  });
+
+  const { data: recentBills } = useQuery({
+    queryKey: ["bills"],
+    queryFn: billsService.getAll,
   });
 
   const form = useForm<BillCalculatorForm>({
@@ -134,6 +142,39 @@ export default function BillCalculator() {
     }));
 
     saveBillMutation.mutate({ bill: billData, shares });
+  };
+
+  const viewBillDetails = async (bill: any) => {
+    try {
+      // Fetch bill shares for this bill
+      const shares = await billsService.getShares(bill.id);
+      const billWithShares = { ...bill, shares };
+      setSelectedBill(billWithShares);
+      setIsDetailsModalOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load bill details",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const formatBillMonth = (startDate: string, endDate: string) => {
+    try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      if (start.getMonth() === end.getMonth()) {
+        return start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      } else {
+        const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
+        const endMonth = end.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        return `${startMonth} - ${endMonth}`;
+      }
+    } catch (error) {
+      return "Unknown Period";
+    }
   };
 
   return (
@@ -349,6 +390,139 @@ export default function BillCalculator() {
           )}
         </CardContent>
       </Card>
+
+      {/* Recent Bills Section */}
+      <Card className="lg:col-span-3 mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Calendar className="h-5 w-5" />
+            <span>Recent Bills</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recentBills && recentBills.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {recentBills.slice(0, 6).map((bill: any) => (
+                <Card key={bill.id} className="border-l-4 border-l-blue-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h4 className="font-semibold text-sm">{formatBillMonth(bill.startDate, bill.endDate)}</h4>
+                        <p className="text-xs text-muted-foreground">
+                          {bill.startDate} to {bill.endDate}
+                        </p>
+                      </div>
+                      <Zap className="h-4 w-4 text-blue-600" />
+                    </div>
+                    
+                    <div className="space-y-2 mb-4">
+                      <div className="flex justify-between text-sm">
+                        <span>Consumption:</span>
+                        <span className="font-medium">{parseFloat(bill.totalConsumption).toFixed(1)} kWh</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Total Amount:</span>
+                        <span className="font-bold text-green-600">₱{parseFloat(bill.totalAmount).toLocaleString()}</span>
+                      </div>
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => viewBillDetails(bill)}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Details
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No bills calculated yet</p>
+              <p className="text-sm">Calculate your first electricity bill above to see it here.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Bill Details Modal */}
+      <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Zap className="h-5 w-5" />
+              <span>Bill Details - {selectedBill && formatBillMonth(selectedBill.startDate, selectedBill.endDate)}</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedBill && (
+            <div className="space-y-6">
+              {/* Bill Summary */}
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-4 rounded-lg border">
+                <h3 className="font-semibold mb-3">Bill Summary</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <small className="text-muted-foreground">Period</small>
+                    <div className="font-medium">{selectedBill.startDate} - {selectedBill.endDate}</div>
+                  </div>
+                  <div>
+                    <small className="text-muted-foreground">Rate per kWh</small>
+                    <div className="font-medium">₱{parseFloat(selectedBill.ratePerKwh).toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <small className="text-muted-foreground">Previous Reading</small>
+                    <div className="font-medium">{parseFloat(selectedBill.previousReading).toLocaleString()} kWh</div>
+                  </div>
+                  <div>
+                    <small className="text-muted-foreground">Current Reading</small>
+                    <div className="font-medium">{parseFloat(selectedBill.currentReading).toLocaleString()} kWh</div>
+                  </div>
+                  <div>
+                    <small className="text-muted-foreground">Total Consumption</small>
+                    <div className="font-medium text-primary">{parseFloat(selectedBill.totalConsumption).toLocaleString()} kWh</div>
+                  </div>
+                  <div>
+                    <small className="text-muted-foreground">Total Amount</small>
+                    <div className="font-bold text-green-600 text-lg">₱{parseFloat(selectedBill.totalAmount).toLocaleString()}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Individual Shares */}
+              {selectedBill.shares && selectedBill.shares.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-3">Individual Shares</h3>
+                  <div className="space-y-3">
+                    {selectedBill.shares.map((share: any, index: number) => {
+                      const dormer = dormers?.find((d: any) => d.id === share.dormerId);
+                      return (
+                        <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                          <div>
+                            <div className="font-medium">{(dormer as any)?.name || 'Unknown'}</div>
+                            <div className="text-sm text-muted-foreground">
+                              Room {(dormer as any)?.room} • {share.daysStayed} days
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-green-600">₱{parseFloat(share.shareAmount).toFixed(2)}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {((parseFloat(share.shareAmount) / parseFloat(selectedBill.totalAmount)) * 100).toFixed(1)}%
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

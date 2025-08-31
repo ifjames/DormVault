@@ -50,22 +50,66 @@ export default function Dashboard() {
   }
 
   const recentActivities = [
-    ...(bills?.slice(0, 2).map((bill: any) => ({
-      type: "bill",
-      icon: Zap,
-      title: "Electricity bill calculated",
-      description: `Bill for period ${bill.startDate} - ${bill.endDate} (₱${parseFloat(bill.totalAmount).toLocaleString()})`,
-      time: new Date(bill.createdAt).toLocaleString(),
-      color: "text-blue-600 bg-blue-50 dark:bg-blue-950",
-    })) || []),
-    ...(payments?.slice(0, 3).map((payment: any) => ({
-      type: "payment",
-      icon: CheckCircle,
-      title: "Payment received",
-      description: `Payment of ₱${parseFloat(payment.amount).toLocaleString()} for ${payment.month}`,
-      time: new Date(payment.createdAt).toLocaleString(),
-      color: "text-green-600 bg-green-50 dark:bg-green-950",
-    })) || []),
+    ...(bills?.slice(0, 2).map((bill: any) => {
+      // Handle Firestore timestamp conversion
+      let timeString = "Just now";
+      try {
+        if (bill.createdAt) {
+          // Check if it's a Firestore timestamp object
+          if (bill.createdAt.toDate && typeof bill.createdAt.toDate === 'function') {
+            timeString = bill.createdAt.toDate().toLocaleString();
+          } else if (bill.createdAt.seconds) {
+            // Handle Firestore timestamp format
+            timeString = new Date(bill.createdAt.seconds * 1000).toLocaleString();
+          } else {
+            // Try parsing as regular date
+            timeString = new Date(bill.createdAt).toLocaleString();
+          }
+        }
+      } catch (error) {
+        console.warn('Error parsing bill date:', error);
+        timeString = "Recently";
+      }
+
+      return {
+        type: "bill",
+        icon: Zap,
+        title: "Electricity bill calculated",
+        description: `Bill for period ${bill.startDate} - ${bill.endDate} (₱${parseFloat(bill.totalAmount).toLocaleString()})`,
+        time: timeString,
+        color: "text-blue-600 bg-blue-50 dark:bg-blue-950",
+      };
+    }) || []),
+    ...(payments?.slice(0, 3).map((payment: any) => {
+      // Handle Firestore timestamp conversion
+      let timeString = "Just now";
+      try {
+        if (payment.createdAt) {
+          // Check if it's a Firestore timestamp object
+          if (payment.createdAt.toDate && typeof payment.createdAt.toDate === 'function') {
+            timeString = payment.createdAt.toDate().toLocaleString();
+          } else if (payment.createdAt.seconds) {
+            // Handle Firestore timestamp format
+            timeString = new Date(payment.createdAt.seconds * 1000).toLocaleString();
+          } else {
+            // Try parsing as regular date
+            timeString = new Date(payment.createdAt).toLocaleString();
+          }
+        }
+      } catch (error) {
+        console.warn('Error parsing payment date:', error);
+        timeString = "Recently";
+      }
+
+      return {
+        type: "payment",
+        icon: CheckCircle,
+        title: "Payment received",
+        description: `Payment of ₱${parseFloat(payment.amount).toLocaleString()} for ${payment.month}`,
+        time: timeString,
+        color: "text-green-600 bg-green-50 dark:bg-green-950",
+      };
+    }) || []),
   ].slice(0, 3);
 
   return (
