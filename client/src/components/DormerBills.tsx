@@ -334,63 +334,63 @@ export default function DormerBills() {
 
       {/* Payment Modal */}
       <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
-        <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-center">Pay Bill via GCash</DialogTitle>
-            <DialogDescription className="text-center text-sm text-muted-foreground">
+        <DialogContent className="w-[90vw] max-w-sm max-h-[85vh] overflow-y-auto m-4 p-4">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-center text-lg">Pay Bill via GCash</DialogTitle>
+            <DialogDescription className="text-center text-xs text-muted-foreground">
               Complete your payment using GCash
             </DialogDescription>
           </DialogHeader>
           
           {selectedBill && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Bill Details */}
-              <div className="text-center p-3 bg-muted rounded-lg">
-                <div className="font-semibold text-base">{selectedBill.title}</div>
-                <div className="text-xl font-bold text-destructive">₱{selectedBill.amount.toFixed(2)}</div>
+              <div className="text-center p-2 bg-muted rounded-lg">
+                <div className="font-semibold text-sm">{selectedBill.title}</div>
+                <div className="text-lg font-bold text-destructive">₱{selectedBill.amount.toFixed(2)}</div>
                 <div className="text-xs text-muted-foreground">{selectedBill.description}</div>
               </div>
 
               {/* QR Code */}
               <div className="text-center">
-                <div className="bg-white p-2 sm:p-4 rounded-lg inline-block shadow-sm">
+                <div className="bg-white p-2 rounded-lg inline-block shadow-sm">
                   <img 
                     src={gcashQR} 
                     alt="GCash QR Code" 
-                    className="w-48 sm:w-64 h-auto mx-auto"
+                    className="w-40 sm:w-48 h-auto mx-auto"
                   />
                 </div>
               </div>
 
               {/* Account Details */}
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="flex items-center justify-center space-x-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-sm sm:text-base">JAMES RAPHAEL CASTILLO</span>
+                  <User className="h-3 w-3 text-muted-foreground" />
+                  <span className="font-medium text-xs">JAMES RAPHAEL CASTILLO</span>
                 </div>
                 <div className="flex items-center justify-center space-x-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-sm sm:text-base">09276681520</span>
+                  <Phone className="h-3 w-3 text-muted-foreground" />
+                  <span className="font-medium text-xs">09276681520</span>
                 </div>
               </div>
 
               {/* Instructions */}
-              <div className="text-center text-xs sm:text-sm text-muted-foreground">
+              <div className="text-center text-xs text-muted-foreground">
                 <p>Scan the QR code or send to the mobile number above.</p>
                 <p>Click "Complete" after making the payment.</p>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-2 pt-1">
                 <Button 
                   variant="outline" 
-                  className="flex-1"
+                  className="flex-1 text-sm py-2"
                   onClick={() => setPaymentModalOpen(false)}
                 >
                   Cancel
                 </Button>
                 <Button 
-                  className="flex-1"
+                  className="flex-1 text-sm py-2"
                   onClick={handlePaymentComplete}
                 >
                   Complete
