@@ -206,7 +206,7 @@ export class DatabaseStorage implements IStorage {
 
   // Authentication operations for dormers
   async getUserByEmailAndPassword(email: string, password: string): Promise<User | undefined> {
-    const bcrypt = require('bcrypt');
+    const bcrypt = await import('bcrypt');
     const [user] = await db.select().from(users).where(eq(users.email, email));
     
     if (user && user.password && await bcrypt.compare(password, user.password)) {
@@ -217,7 +217,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDormerWithUser(dormerData: InsertDormer & { password: string }): Promise<Dormer> {
-    const bcrypt = require('bcrypt');
+    const bcrypt = await import('bcrypt');
     const hashedPassword = await bcrypt.hash(dormerData.password, 10);
     
     // Create user account first

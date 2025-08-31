@@ -25,6 +25,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create admin account route (for initial setup)
+  app.post('/api/auth/create-admin', async (req, res) => {
+    try {
+      const { email, password, firstName, lastName } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      // Check if user already exists by email
+      const db = (await import('./db')).db;
+      const { users } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+      const [existingUser] = await db.select().from(users).where(eq(users.email, email));
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      const bcrypt = await import('bcrypt');
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      const user = await storage.upsertUser({
+        email,
+        firstName: firstName || '',
+        lastName: lastName || '',
+        role: 'admin',
+        password: hashedPassword,
+      });
+
+      res.json({ 
+        user: { 
+          id: user.id, 
+          email: user.email, 
+          firstName: user.firstName, 
+          role: user.role 
+        }
+      });
+    } catch (error) {
+      console.error("Error creating admin:", error);
+      res.status(500).json({ message: "Failed to create admin account" });
+    }
+  });
+
   // Dormer routes
   app.get('/api/dormers', isAuthenticated, async (req, res) => {
     try {
@@ -203,8 +246,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Dormer authentication routes
-  app.post('/api/auth/dormer/login', async (req, res) => {
+  // Unified authentication route
+  app.post('/api/auth/login', async (req, res) => {
     try {
       const { email, password } = req.body;
       
@@ -214,36 +257,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const user = await storage.getUserByEmailAndPassword(email, password);
       
-      if (!user || user.role !== 'dormer') {
+      if (!user) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
-      // Find the dormer record for this user
-      const dormers = await storage.getDormers();
-      const dormer = dormers.find(d => d.userId === user.id);
-      
-      if (!dormer) {
-        return res.status(404).json({ message: "Dormer profile not found" });
-      }
-      
-      // Simple session for dormers (you might want to use JWT or sessions)
-      res.json({ 
+      const responseData = {
         user: { 
           id: user.id, 
           email: user.email, 
           firstName: user.firstName, 
+          lastName: user.lastName,
           role: user.role 
-        },
-        dormer: {
-          id: dormer.id,
-          name: dormer.name,
-          room: dormer.room,
-          email: dormer.email,
-          monthlyRent: dormer.monthlyRent
         }
-      });
+      };
+
+      // If it's a dormer, also include their dormer profile
+      if (user.role === 'dormer') {
+        const dormers = await storage.getDormers();
+        const dormer = dormers.find(d => d.userId === user.id);
+        
+        if (dormer) {
+          (responseData as any).dormer = {
+            id: dormer.id,
+            name: dormer.name,
+            room: dormer.room,
+            email: dormer.email,
+            monthlyRent: dormer.monthlyRent
+          };
+        }
+      }
+      
+      res.json(responseData);
     } catch (error) {
-      console.error("Error logging in dormer:", error);
+      console.error("Error during login:", error);
       res.status(500).json({ message: "Login failed" });
     }
   });

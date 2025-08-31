@@ -33,11 +33,16 @@ export default function DormerDashboard() {
   });
 
   useEffect(() => {
-    const sessionData = localStorage.getItem('dormer_session');
+    const sessionData = localStorage.getItem('user_session');
     if (sessionData) {
-      setSession(JSON.parse(sessionData));
+      const parsedSession = JSON.parse(sessionData);
+      if (parsedSession.user?.role === 'dormer') {
+        setSession(parsedSession);
+      } else {
+        window.location.href = '/login';
+      }
     } else {
-      window.location.href = '/dormer-login';
+      window.location.href = '/login';
     }
   }, []);
 
@@ -87,8 +92,8 @@ export default function DormerDashboard() {
   });
 
   const handleLogout = () => {
-    localStorage.removeItem('dormer_session');
-    window.location.href = '/dormer-login';
+    localStorage.removeItem('user_session');
+    window.location.href = '/login';
   };
 
   const generateMonthDays = () => {

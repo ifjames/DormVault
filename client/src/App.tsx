@@ -6,9 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import NotFound from "@/pages/not-found";
-import AdminLogin from "@/pages/admin-login";
+import Login from "@/pages/login";
 import Home from "@/pages/home";
-import DormerLogin from "@/pages/dormer-login";
 import DormerDashboard from "@/pages/dormer-dashboard";
 
 function Router() {
@@ -24,10 +23,10 @@ function Router() {
 
   return (
     <Switch>
-      <Route path="/dormer-login" component={DormerLogin} />
+      <Route path="/login" component={Login} />
       <Route path="/dormer-dashboard" component={DormerDashboard} />
       {!isAuthenticated ? (
-        <Route path="/" component={AdminLogin} />
+        <Route path="/" component={Login} />
       ) : (
         <Route path="/" component={Home} />
       )}

@@ -16,7 +16,7 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-export default function DormerLogin() {
+export default function Login() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -31,7 +31,8 @@ export default function DormerLogin() {
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/dormer/login', {
+      // Try unified login endpoint
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -42,16 +43,20 @@ export default function DormerLogin() {
       if (response.ok) {
         const result = await response.json();
         
-        // Store login info in localStorage for now (you might want to use a more secure approach)
-        localStorage.setItem('dormer_session', JSON.stringify(result));
+        // Store login info
+        localStorage.setItem('user_session', JSON.stringify(result));
         
         toast({
           title: "Login Successful",
-          description: `Welcome back, ${result.dormer.name}!`,
+          description: `Welcome back, ${result.user.firstName || result.user.email}!`,
         });
 
-        // Redirect to dormer dashboard
-        window.location.href = '/dormer-dashboard';
+        // Redirect based on role
+        if (result.user.role === 'admin') {
+          window.location.href = '/';
+        } else if (result.user.role === 'dormer') {
+          window.location.href = '/dormer-dashboard';
+        }
       } else {
         const error = await response.json();
         toast({
@@ -80,9 +85,9 @@ export default function DormerLogin() {
               <Home className="h-6 w-6 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl text-center">Dormer Login</CardTitle>
+          <CardTitle className="text-2xl text-center">DormMaster</CardTitle>
           <p className="text-sm text-muted-foreground text-center">
-            Access your dormitory account
+            Sign in to your account
           </p>
         </CardHeader>
         <CardContent>
@@ -139,7 +144,7 @@ export default function DormerLogin() {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Need help? Contact your dorm administrator
+              Need help? Contact your administrator
             </p>
           </div>
         </CardContent>
