@@ -12,19 +12,12 @@ import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useLocation } from "wouter";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required").trim(),
+  email: z.string().email("Please enter a valid email").min(1, "Email is required"),
   password: z.string().min(1, "Password is required"),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-// Helper function to convert username to email
-const getUserEmail = (username: string): string => {
-  if (username.includes('@')) {
-    return username; // Already an email
-  }
-  return `${username}@dorm.com`; // Convert username to email
-};
 
 export default function Login() {
   const { toast } = useToast();
@@ -40,7 +33,7 @@ export default function Login() {
     resolver: zodResolver(loginSchema),
     mode: "onSubmit",
     defaultValues: {
-      username: localStorage.getItem('rememberedUsername') || "",
+      email: localStorage.getItem('rememberedEmail') || "",
       password: "",
     },
   });
@@ -48,27 +41,26 @@ export default function Login() {
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     
-    console.log('Login attempt with:', { username: data.username, email: getUserEmail(data.username) });
+    console.log('Login attempt with:', { email: data.email });
     
     try {
-      const email = getUserEmail(data.username);
-      const result = await login(email, data.password);
+      const result = await login(data.email, data.password);
       
       console.log('Login result:', result);
       
       // Handle remember me functionality
       if (rememberMe) {
-        localStorage.setItem('rememberedUsername', data.username);
+        localStorage.setItem('rememberedEmail', data.email);
         localStorage.setItem('rememberMe', 'true');
       } else {
-        localStorage.removeItem('rememberedUsername');
+        localStorage.removeItem('rememberedEmail');
         localStorage.removeItem('rememberMe');
       }
       
       if (result.success) {
         toast({
           title: "Login Successful",
-          description: `Welcome back, ${data.username}!`,
+          description: `Welcome back!`,
         });
         
         // Redirect to dashboard
@@ -76,7 +68,7 @@ export default function Login() {
       } else {
         toast({
           title: "Login Failed",
-          description: result.error || "Invalid credentials. Try: james/password123 or admin/admin123",
+          description: result.error || "Invalid credentials",
           variant: "destructive",
         });
       }
@@ -108,23 +100,22 @@ export default function Login() {
               <div className="w-1/2 p-12">
                 <div className="max-w-md mx-auto">
                   <div className="flex items-center justify-center mb-8">
-                    <img src={logoUrl} alt="DormVault" className="h-16 w-16 mr-3" />
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Login</h1>
                   </div>
                   
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <div>
-                      <Label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username</Label>
+                      <Label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</Label>
                       <Input
-                        id="username"
-                        type="text"
-                        placeholder="james"
+                        id="email"
+                        type="email"
+                        placeholder="james@example.com"
                         className="w-full h-12 px-4 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
-                        {...form.register("username")}
-                        data-testid="input-username"
+                        {...form.register("email")}
+                        data-testid="input-email"
                       />
-                      {form.formState.errors.username && (
-                        <p className="text-sm text-red-500 mt-1">{form.formState.errors.username.message}</p>
+                      {form.formState.errors.email && (
+                        <p className="text-sm text-red-500 mt-1">{form.formState.errors.email.message}</p>
                       )}
                     </div>
 
@@ -209,17 +200,17 @@ export default function Login() {
             
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <div>
-                <Label htmlFor="username-mobile" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username</Label>
+                <Label htmlFor="email-mobile" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</Label>
                 <Input
-                  id="username-mobile"
-                  type="text"
-                  placeholder="james"
+                  id="email-mobile"
+                  type="email"
+                  placeholder="james@example.com"
                   className="w-full h-11 px-4 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
-                  {...form.register("username")}
-                  data-testid="input-username-mobile"
+                  {...form.register("email")}
+                  data-testid="input-email-mobile"
                 />
-                {form.formState.errors.username && (
-                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.username.message}</p>
+                {form.formState.errors.email && (
+                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.email.message}</p>
                 )}
               </div>
 
