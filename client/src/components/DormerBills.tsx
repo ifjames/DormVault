@@ -334,7 +334,7 @@ export default function DormerBills() {
 
       {/* Payment Modal */}
       <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
-        <DialogContent className="w-[90vw] max-w-sm max-h-[85vh] overflow-y-auto m-4 p-4">
+        <DialogContent className="w-[90vw] max-w-sm max-h-[85vh] overflow-y-auto p-4" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
           <DialogHeader className="space-y-1">
             <DialogTitle className="text-center text-lg">Pay Bill via GCash</DialogTitle>
             <DialogDescription className="text-center text-xs text-muted-foreground">
