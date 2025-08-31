@@ -1,7 +1,4 @@
-import { useState, useCallback } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,49 +8,20 @@ import logoUrl from "@assets/image_1756632409184.png";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useLocation } from "wouter";
 
-const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email").optional().or(z.literal("")),
-  password: z.string().optional().or(z.literal("")),
-}).refine((data) => data.email && data.email.length > 0, {
-  message: "Email is required",
-  path: ["email"],
-}).refine((data) => data.password && data.password.length > 0, {
-  message: "Password is required", 
-  path: ["password"],
-});
-
-type LoginForm = z.infer<typeof loginSchema>;
-
-
 export default function Login() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(() => {
-    return localStorage.getItem('rememberMe') === 'true';
-  });
+  const [email, setEmail] = useState(localStorage.getItem('rememberedEmail') || "");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(localStorage.getItem('rememberMe') === 'true');
   const { login } = useFirebaseAuth();
   const [, setLocation] = useLocation();
 
-  const form = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-    mode: "onSubmit",
-    defaultValues: {
-      email: localStorage.getItem('rememberedEmail') || "",
-      password: "",
-    },
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  // Debug form state
-  console.log("Form errors:", form.formState.errors);
-  console.log("Form values:", form.watch());
-  console.log("Form registration test:", form.register("email"));
-
-  const onSubmit = async (data: LoginForm) => {
-    console.log("Form data:", data); // Debug log
-    
-    // Validate that we have both email and password
-    if (!data.email || !data.password) {
+    if (!email || !password) {
       toast({
         title: "Validation Error",
         description: "Please enter both email and password",
@@ -63,26 +31,23 @@ export default function Login() {
     }
 
     setIsLoading(true);
-    
+
     try {
-      const result = await login(data.email, data.password);
-      
-      // Handle remember me functionality
+      const result = await login(email, password);
+
       if (rememberMe) {
-        localStorage.setItem('rememberedEmail', data.email);
+        localStorage.setItem('rememberedEmail', email);
         localStorage.setItem('rememberMe', 'true');
       } else {
         localStorage.removeItem('rememberedEmail');
         localStorage.removeItem('rememberMe');
       }
-      
+
       if (result.success) {
         toast({
           title: "Login Successful",
-          description: `Welcome back!`,
+          description: "Welcome back!",
         });
-        
-        // Redirect to dashboard
         setLocation('/');
       } else {
         toast({
@@ -92,10 +57,9 @@ export default function Login() {
         });
       }
     } catch (error: any) {
-      console.error("Login error:", error); // Debug log
       toast({
         title: "Login Failed",
-        description: error.message || "Invalid email or password. Make sure you have an account created in Firebase.",
+        description: error.message || "Invalid email or password.",
         variant: "destructive",
       });
     } finally {
@@ -110,6 +74,7 @@ export default function Login() {
         <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-purple-300/20 to-pink-300/20 rounded-full blur-3xl transform -translate-x-32 -translate-y-32"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-purple-300/20 to-blue-300/20 rounded-full blur-3xl transform translate-x-32 translate-y-32"></div>
       </div>
+
       {/* Desktop Layout */}
       <div className="hidden lg:flex min-h-screen items-center justify-center p-8">
         <div className="w-full max-w-6xl mx-auto">
@@ -121,21 +86,19 @@ export default function Login() {
                   <div className="flex items-center justify-center mb-8">
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Login</h1>
                   </div>
-                  
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
+                  <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                       <Label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</Label>
                       <Input
                         id="email"
                         type="email"
                         placeholder="james@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         className="w-full h-12 px-4 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
-                        {...form.register("email")}
                         data-testid="input-email"
                       />
-                      {form.formState.errors.email && (
-                        <p className="text-sm text-red-500 mt-1">{form.formState.errors.email.message}</p>
-                      )}
                     </div>
 
                     <div>
@@ -145,8 +108,9 @@ export default function Login() {
                           id="password"
                           type={showPassword ? "text" : "password"}
                           placeholder="Enter 6 character or more"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
                           className="w-full h-12 px-4 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
-                          {...form.register("password")}
                           data-testid="input-password"
                         />
                         <div
@@ -156,9 +120,6 @@ export default function Login() {
                           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </div>
                       </div>
-                      {form.formState.errors.password && (
-                        <p className="text-sm text-red-500 mt-1">{form.formState.errors.password.message}</p>
-                      )}
                     </div>
 
                     <div className="flex items-center">
@@ -190,7 +151,7 @@ export default function Login() {
                   </form>
                 </div>
               </div>
-              
+
               {/* Right side - Logo and Title */}
               <div className="w-1/2 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-800 dark:to-purple-900 flex items-center justify-center p-12">
                 <div className="text-center">
@@ -205,6 +166,7 @@ export default function Login() {
           </div>
         </div>
       </div>
+
       {/* Mobile Layout */}
       <div className="lg:hidden min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-sm">
@@ -216,21 +178,19 @@ export default function Login() {
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">Access your dorm account</p>
             </div>
-            
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <Label htmlFor="email-mobile" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</Label>
                 <Input
                   id="email-mobile"
                   type="email"
                   placeholder="james@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full h-11 px-4 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
-                  {...form.register("email")}
                   data-testid="input-email-mobile"
                 />
-                {form.formState.errors.email && (
-                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.email.message}</p>
-                )}
               </div>
 
               <div>
@@ -240,8 +200,9 @@ export default function Login() {
                     id="password-mobile"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="w-full h-11 px-4 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
-                    {...form.register("password")}
                     data-testid="input-password-mobile"
                   />
                   <div
@@ -251,9 +212,6 @@ export default function Login() {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </div>
                 </div>
-                {form.formState.errors.password && (
-                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.password.message}</p>
-                )}
               </div>
 
               <div className="flex items-center text-sm">
