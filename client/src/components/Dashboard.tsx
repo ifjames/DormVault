@@ -25,12 +25,12 @@ export default function Dashboard() {
   // Calculate analytics
   const analytics = {
     activeDormers: dormers?.filter((d: any) => d.isActive).length || 0,
-    monthlyRevenue: payments?.filter((p: any) => {
+    monthlyRevenue: Math.round((payments?.filter((p: any) => {
       const currentMonth = new Date().toISOString().slice(0, 7);
       return p.month === currentMonth && p.status === 'paid';
-    }).reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0) || 0,
+    }).reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0) || 0) * 100) / 100,
     pendingPayments: payments?.filter((p: any) => p.status === 'pending').length || 0,
-    avgElectricBill: bills && bills.length > 0 ? parseFloat((bills[0] as any).totalAmount) / (parseFloat((bills[0] as any).totalConsumption) || 1) : 0,
+    avgElectricBill: bills && bills.length > 0 ? Math.round((parseFloat((bills[0] as any).totalAmount) / (parseFloat((bills[0] as any).totalConsumption) || 1)) * 100) / 100 : 0,
     totalDormers: dormers?.length || 0,
     occupancyRate: dormers?.length ? Math.round(((dormers?.filter((d: any) => d.isActive).length || 0) / dormers.length) * 100) : 0,
   };

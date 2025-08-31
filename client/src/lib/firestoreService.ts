@@ -95,6 +95,16 @@ export const billsService = {
       createdAt: serverTimestamp()
     });
     return { id: docRef.id, ...shareData };
+  },
+
+  async delete(id: string) {
+    const docRef = doc(db, COLLECTIONS.BILLS, id);
+    await deleteDoc(docRef);
+  },
+
+  async deleteShare(id: string) {
+    const docRef = doc(db, COLLECTIONS.BILL_SHARES, id);
+    await deleteDoc(docRef);
   }
 };
 

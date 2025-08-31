@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Calculator, Plus, Trash2, CheckCircle, Eye, Calendar, Zap } from "lucide-react";
+import { Calculator, Plus, Trash2, CheckCircle, Eye, Calendar, Zap, X } from "lucide-react";
 import { dormersService, billsService } from "@/lib/firestoreService";
 
 const billCalculatorSchema = z.object({
@@ -78,6 +78,35 @@ export default function BillCalculator() {
       toast({
         title: "Error",
         description: "Failed to save bill calculation",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteBillMutation = useMutation({
+    mutationFn: async (billId: string) => {
+      // First delete all shares for this bill
+      const shares = await billsService.getShares(billId);
+      const deleteSharePromises = shares.map((share: any) => 
+        billsService.deleteShare(share.id)
+      );
+      await Promise.all(deleteSharePromises);
+      
+      // Then delete the bill
+      return billsService.delete(billId);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Bill deleted successfully!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["bills"] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete bill",
         variant: "destructive",
       });
     },
@@ -458,15 +487,26 @@ export default function BillCalculator() {
                       </div>
                     </div>
                     
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => viewBillDetails(bill)}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Details
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => viewBillDetails(bill)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View Details
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="px-2"
+                        onClick={() => deleteBillMutation.mutate(bill.id)}
+                        disabled={deleteBillMutation.isPending}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
