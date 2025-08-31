@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
+import logoUrl from "@assets/generated_images/DormVault_logo_design_290d68c6.png";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useLocation } from "wouter";
 
@@ -73,9 +74,9 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-400 via-purple-500 to-purple-600 dark:from-purple-800 dark:via-purple-900 dark:to-purple-950 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-purple-400 via-purple-500 to-purple-600 dark:from-purple-800 dark:via-purple-900 dark:to-purple-950 relative overflow-hidden select-none">
       {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-purple-300/20 to-pink-300/20 rounded-full blur-3xl transform -translate-x-32 -translate-y-32"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-purple-300/20 to-blue-300/20 rounded-full blur-3xl transform translate-x-32 translate-y-32"></div>
       </div>
@@ -88,8 +89,10 @@ export default function Login() {
               {/* Left side - Form */}
               <div className="w-1/2 p-12">
                 <div className="max-w-md mx-auto">
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Login</h1>
-                  <p className="text-gray-600 dark:text-gray-400 mb-8">Doesn't have an account yet? <span className="text-purple-600 dark:text-purple-400 cursor-pointer">Sign Up</span></p>
+                  <div className="flex items-center justify-center mb-8">
+                    <img src={logoUrl} alt="DormVault" className="h-16 w-16 mr-3" />
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">DormVault</h1>
+                  </div>
                   
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <div>
@@ -108,10 +111,7 @@ export default function Login() {
                     </div>
 
                     <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <Label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</Label>
-                        <span className="text-sm text-purple-600 dark:text-purple-400 cursor-pointer hover:underline">Forget Password?</span>
-                      </div>
+                      <Label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</Label>
                       <div className="relative">
                         <Input
                           id="password"
@@ -178,10 +178,10 @@ export default function Login() {
         <div className="w-full max-w-sm">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center">
-                <span className="text-2xl">🏠</span>
+              <div className="flex items-center justify-center mb-4">
+                <img src={logoUrl} alt="DormVault" className="h-12 w-12 mr-2" />
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">DormVault</h1>
               </div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Login</h1>
               <p className="text-sm text-gray-600 dark:text-gray-400">Access your dorm account</p>
             </div>
             
@@ -202,10 +202,7 @@ export default function Login() {
               </div>
 
               <div>
-                <div className="flex justify-between items-center mb-2">
-                  <Label htmlFor="password-mobile" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</Label>
-                  <span className="text-xs text-purple-600 dark:text-purple-400 cursor-pointer hover:underline">Forgot?</span>
-                </div>
+                <Label htmlFor="password-mobile" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</Label>
                 <div className="relative">
                   <Input
                     id="password-mobile"
