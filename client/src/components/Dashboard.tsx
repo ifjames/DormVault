@@ -1,18 +1,25 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, DollarSign, AlertTriangle, Zap, Clock, CheckCircle, UserPlus, Download } from "lucide-react";
+import { Users, DollarSign, AlertTriangle, Zap, Clock, CheckCircle, UserPlus, Download, Calculator, CreditCard, BarChart3 } from "lucide-react";
 
 export default function Dashboard() {
-  const { data: analytics, isLoading } = useQuery({
+  const { data: analytics, isLoading } = useQuery<{
+    activeDormers: number;
+    monthlyRevenue: number;
+    pendingPayments: number;
+    avgElectricBill: number;
+    totalDormers: number;
+    occupancyRate: number;
+  }>({
     queryKey: ["/api/analytics"],
   });
 
-  const { data: bills } = useQuery({
+  const { data: bills } = useQuery<any[]>({
     queryKey: ["/api/bills"],
   });
 
-  const { data: payments } = useQuery({
+  const { data: payments } = useQuery<any[]>({
     queryKey: ["/api/payments"],
   });
 

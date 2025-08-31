@@ -32,7 +32,7 @@ export default function BillCalculator() {
   const [people, setPeople] = useState([{ name: "", days: 1 }]);
   const [billResult, setBillResult] = useState<any>(null);
 
-  const { data: dormers } = useQuery({
+  const { data: dormers } = useQuery<any[]>({
     queryKey: ["/api/dormers"],
   });
 

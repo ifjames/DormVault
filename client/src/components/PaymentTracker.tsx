@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { CreditCard, Plus, Eye, Edit, Check, Clock, AlertTriangle } from "lucide-react";
+import { CreditCard, Plus, Eye, Edit, Check, Clock, AlertTriangle, CheckCircle } from "lucide-react";
 import type { Dormer, Payment } from "@shared/schema";
 
 const paymentSchema = z.object({
@@ -35,11 +35,11 @@ export default function PaymentTracker() {
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  const { data: dormers } = useQuery({
+  const { data: dormers } = useQuery<Dormer[]>({
     queryKey: ["/api/dormers"],
   });
 
-  const { data: payments, isLoading } = useQuery({
+  const { data: payments, isLoading } = useQuery<Payment[]>({
     queryKey: ["/api/payments"],
   });
 
@@ -163,7 +163,7 @@ export default function PaymentTracker() {
   const pendingCount = payments?.filter((p: Payment) => p.status === "pending").length || 0;
   const totalExpected = (dormers?.length || 0) * 1500;
   const totalCollected = payments?.filter((p: Payment) => p.status === "paid")
-    .reduce((sum, p) => sum + parseFloat(p.amount), 0) || 0;
+    .reduce((sum: number, p: Payment) => sum + parseFloat(p.amount), 0) || 0;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

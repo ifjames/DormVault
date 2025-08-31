@@ -31,7 +31,7 @@ export default function DormLayout() {
             
             <div className="flex items-center space-x-3">
               <span className="hidden md:block text-sm text-muted-foreground">
-                Welcome, <span className="font-medium text-foreground">{user?.firstName || user?.email || "Admin"}</span>
+                Welcome, <span className="font-medium text-foreground">{(user as any)?.firstName || (user as any)?.email || "Admin"}</span>
               </span>
               <Button
                 variant="ghost"

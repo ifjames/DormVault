@@ -4,15 +4,22 @@ import { Progress } from "@/components/ui/progress";
 import { Users, DollarSign, Zap, Calendar, BarChart3, PieChart } from "lucide-react";
 
 export default function Analytics() {
-  const { data: analytics, isLoading } = useQuery({
+  const { data: analytics, isLoading } = useQuery<{
+    activeDormers: number;
+    monthlyRevenue: number;
+    pendingPayments: number;
+    avgElectricBill: number;
+    totalDormers: number;
+    occupancyRate: number;
+  }>({
     queryKey: ["/api/analytics"],
   });
 
-  const { data: dormers } = useQuery({
+  const { data: dormers } = useQuery<any[]>({
     queryKey: ["/api/dormers"],
   });
 
-  const { data: payments } = useQuery({
+  const { data: payments } = useQuery<any[]>({
     queryKey: ["/api/payments"],
   });
 
@@ -88,7 +95,7 @@ export default function Analytics() {
           <CardContent className="p-6 text-center">
             <Calendar className="h-12 w-12 mx-auto mb-3 opacity-80" />
             <h3 className="text-3xl font-bold mb-1" data-testid="analytics-avg-stay-days">
-              {Math.round(stayDurations.reduce((sum, d) => sum + d.days, 0) / Math.max(stayDurations.length, 1))}
+              {Math.round(stayDurations.reduce((sum: number, d: any) => sum + d.days, 0) / Math.max(stayDurations.length, 1))}
             </h3>
             <p className="text-cyan-100 text-sm">Avg Days Stayed</p>
           </CardContent>
@@ -143,7 +150,7 @@ export default function Analytics() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {stayDurations.map((duration, index) => (
+              {stayDurations.map((duration: any, index: number) => (
                 <div key={index} className="flex justify-between items-center" data-testid={`duration-${index}`}>
                   <div>
                     <div className="font-medium">{duration.dormerName}</div>
