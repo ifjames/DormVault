@@ -31,9 +31,27 @@ export default function DormerAttendance() {
   const queryClient = useQueryClient();
   const { user, isLoading: authLoading } = useFirebaseAuth();
   const [dormerData, setDormerData] = useState<DormerData | null>(null);
-  const [currentMonth] = useState(new Date().getMonth());
-  const [currentYear] = useState(new Date().getFullYear());
-  const currentMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+  // Calculate billing period (21st of current month to 20th of next month)
+  const [billingPeriod] = useState(() => {
+    const today = new Date();
+    const currentDay = today.getDate();
+    
+    // If today is before the 21st, billing period is from previous month 21st to current month 20th
+    // If today is 21st or after, billing period is from current month 21st to next month 20th
+    if (currentDay < 21) {
+      // Previous month 21st to current month 20th
+      const startDate = new Date(today.getFullYear(), today.getMonth() - 1, 21);
+      const endDate = new Date(today.getFullYear(), today.getMonth(), 20);
+      return { startDate, endDate };
+    } else {
+      // Current month 21st to next month 20th
+      const startDate = new Date(today.getFullYear(), today.getMonth(), 21);
+      const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 20);
+      return { startDate, endDate };
+    }
+  });
+  
+  const billingPeriodStr = `${billingPeriod.startDate.getFullYear()}-${String(billingPeriod.startDate.getMonth() + 1).padStart(2, '0')}`;
 
   // Fetch dormer data when user is authenticated
   useEffect(() => {
@@ -68,7 +86,7 @@ export default function DormerAttendance() {
   }, [user, toast]);
 
   const { data: attendance, isLoading } = useQuery({
-    queryKey: ['attendance', dormerData?.id, currentMonthStr],
+    queryKey: ['attendance', dormerData?.id, billingPeriodStr],
     queryFn: async () => {
       if (!dormerData?.id) return [];
       
@@ -78,7 +96,7 @@ export default function DormerAttendance() {
         const q = query(
           attendanceRef,
           where("dormerId", "==", dormerData.id),
-          where("month", "==", currentMonthStr)
+          where("month", "==", billingPeriodStr)
         );
         
         const querySnapshot = await getDocs(q);
@@ -101,7 +119,7 @@ export default function DormerAttendance() {
         const attendanceData = {
           dormerId: data.dormerId,
           date: data.date,
-          month: currentMonthStr,
+          month: billingPeriodStr,
           isPresent: data.isPresent,
           note: data.note || '',
           updatedAt: new Date()
@@ -133,17 +151,21 @@ export default function DormerAttendance() {
     },
   });
 
-  const generateMonthDays = () => {
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const generateBillingPeriodDays = () => {
     const days = [];
+    const currentDate = new Date(billingPeriod.startDate);
     
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = `${currentMonthStr}-${String(day).padStart(2, '0')}`;
+    // Generate all days from start date to end date
+    while (currentDate <= billingPeriod.endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
       days.push({
-        date,
-        day,
-        isPresent: isAttendanceMarked(date),
+        date: dateStr,
+        day: currentDate.getDate(),
+        month: currentDate.getMonth(),
+        year: currentDate.getFullYear(),
+        isPresent: isAttendanceMarked(dateStr),
       });
+      currentDate.setDate(currentDate.getDate() + 1);
     }
     
     return days;
@@ -212,10 +234,10 @@ export default function DormerAttendance() {
     );
   }
 
-  const attendanceData = generateMonthDays();
+  const attendanceData = generateBillingPeriodDays();
   const daysStayed = getDaysStayed();
   const today = new Date().getDate();
-  const isCurrentMonth = new Date().getMonth() === currentMonth && new Date().getFullYear() === currentYear;
+  // Remove this line as we no longer need it with the new billing period logic
 
   return (
     <Card>
@@ -227,7 +249,7 @@ export default function DormerAttendance() {
           </div>
           <div className="flex items-center space-x-4">
             <Badge variant="outline" className="text-sm">
-              {monthNames[currentMonth]} {currentYear}
+              {monthNames[billingPeriod.startDate.getMonth()]} {billingPeriod.startDate.getDate()} - {monthNames[billingPeriod.endDate.getMonth()]} {billingPeriod.endDate.getDate()}, {billingPeriod.endDate.getFullYear()}
             </Badge>
             <div className="text-right">
               <div className="text-sm text-muted-foreground">Days Stayed:</div>
@@ -266,14 +288,14 @@ export default function DormerAttendance() {
             
             {attendanceData.map((attendance, index) => (
               <div key={attendance.day} className={`grid grid-cols-5 gap-0 border-b hover:bg-muted/30 transition-colors ${
-                isCurrentMonth && attendance.day === today ? 'bg-blue-50 dark:bg-blue-950/30' : ''
+                new Date().toISOString().split('T')[0] === attendance.date ? 'bg-blue-50 dark:bg-blue-950/30' : ''
               }`}>
                 <div className="p-2 border-r font-medium text-sm">
                   {index === 0 ? dormerData?.name?.split('@')[0] || dormerData?.name || "" : ""}
                 </div>
                 <div className="p-2 border-r text-center font-mono text-sm">
                   {attendance.day}
-                  {isCurrentMonth && attendance.day === today && (
+                  {new Date().toISOString().split('T')[0] === attendance.date && (
                     <Badge variant="secondary" className="ml-1 text-xs">Today</Badge>
                   )}
                 </div>
@@ -299,7 +321,7 @@ export default function DormerAttendance() {
                   {index === 0 && (
                     <div className="text-left">
                       <div className="text-xs text-muted-foreground">
-                        {monthNames[currentMonth]} {1} to {monthNames[currentMonth]} {attendanceData.length}
+                        Billing Period
                       </div>
                       <div className="text-xs font-medium">
                         Days Stayed: <span className="text-primary">{daysStayed}</span>
