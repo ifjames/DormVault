@@ -77,7 +77,7 @@ export default function DormerLayout() {
           </TabsContent>
           
           <TabsContent value="calculator">
-            <BillCalculator />
+            <BillCalculator userRole="dormer" />
           </TabsContent>
           
           <TabsContent value="bills">

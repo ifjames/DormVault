@@ -27,7 +27,11 @@ const billCalculatorSchema = z.object({
 
 type BillCalculatorForm = z.infer<typeof billCalculatorSchema>;
 
-export default function BillCalculator() {
+interface BillCalculatorProps {
+  userRole?: "admin" | "dormer";
+}
+
+export default function BillCalculator({ userRole = "admin" }: BillCalculatorProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [people, setPeople] = useState([{ name: "", days: 1 }]);
@@ -432,15 +436,17 @@ export default function BillCalculator() {
                   <strong className="text-primary text-xl">₱{billResult.totalBill.toFixed(2)}</strong>
                 </div>
 
-                <Button 
-                  onClick={saveBill}
-                  className="w-full mt-4"
-                  disabled={saveBillMutation.isPending}
-                  data-testid="button-save-calculation"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  {saveBillMutation.isPending ? "Saving..." : "Save Calculation"}
-                </Button>
+                {userRole === "admin" && (
+                  <Button 
+                    onClick={saveBill}
+                    className="w-full mt-4"
+                    disabled={saveBillMutation.isPending}
+                    data-testid="button-save-calculation"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    {saveBillMutation.isPending ? "Saving..." : "Save Calculation"}
+                  </Button>
+                )}
               </div>
             </div>
           ) : (
@@ -452,74 +458,76 @@ export default function BillCalculator() {
         </CardContent>
       </Card>
 
-      {/* Recent Bills Section */}
-      <Card className="lg:col-span-3 mt-6">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Calendar className="h-5 w-5" />
-            <span>Recent Bills</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentBills && recentBills.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recentBills.slice(0, 6).map((bill: any) => (
-                <Card key={bill.id} className="border-l-4 border-l-blue-500">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h4 className="font-semibold text-sm">{formatBillMonth(bill.startDate, bill.endDate)}</h4>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDateRange(bill.startDate, bill.endDate)}
-                        </p>
+      {/* Recent Bills Section - Only show for admin */}
+      {userRole === "admin" && (
+        <Card className="lg:col-span-3 mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Calendar className="h-5 w-5" />
+              <span>Recent Bills</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {recentBills && recentBills.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {recentBills.slice(0, 6).map((bill: any) => (
+                  <Card key={bill.id} className="border-l-4 border-l-blue-500">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h4 className="font-semibold text-sm">{formatBillMonth(bill.startDate, bill.endDate)}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDateRange(bill.startDate, bill.endDate)}
+                          </p>
+                        </div>
+                        <Zap className="h-4 w-4 text-blue-600" />
                       </div>
-                      <Zap className="h-4 w-4 text-blue-600" />
-                    </div>
-                    
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between text-sm">
-                        <span>Consumption:</span>
-                        <span className="font-medium">{parseFloat(bill.totalConsumption).toFixed(1)} kWh</span>
+                      
+                      <div className="space-y-2 mb-4">
+                        <div className="flex justify-between text-sm">
+                          <span>Consumption:</span>
+                          <span className="font-medium">{parseFloat(bill.totalConsumption).toFixed(1)} kWh</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Total Amount:</span>
+                          <span className="font-bold text-green-600">₱{parseFloat(bill.totalAmount).toLocaleString()}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Total Amount:</span>
-                        <span className="font-bold text-green-600">₱{parseFloat(bill.totalAmount).toLocaleString()}</span>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => viewBillDetails(bill)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="px-2"
+                          onClick={() => deleteBillMutation.mutate(bill.id)}
+                          disabled={deleteBillMutation.isPending}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => viewBillDetails(bill)}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View Details
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="px-2"
-                        onClick={() => deleteBillMutation.mutate(bill.id)}
-                        disabled={deleteBillMutation.isPending}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>No bills calculated yet</p>
-              <p className="text-sm">Calculate your first electricity bill above to see it here.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No bills calculated yet</p>
+                <p className="text-sm">Calculate your first electricity bill above to see it here.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Bill Details Modal */}
       <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>

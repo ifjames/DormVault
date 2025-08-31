@@ -96,7 +96,7 @@ export default function DormLayout() {
           </TabsContent>
           
           <TabsContent value="calculator">
-            <BillCalculator />
+            <BillCalculator userRole="admin" />
           </TabsContent>
           
           <TabsContent value="payments">
