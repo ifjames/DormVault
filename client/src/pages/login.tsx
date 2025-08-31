@@ -7,36 +7,39 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
-import logoUrl from "@assets/generated_images/DormVault_logo_design_290d68c6.png";
+import logoUrl from "@assets/image_1756632409184.png";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useLocation } from "wouter";
 
 const loginSchema = z.object({
-  email: z.string().min(1, "Email ID is required"),
+  username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
 
 // Helper function to convert username to email
-const getUserEmail = (email: string): string => {
-  if (email.includes('@')) {
-    return email; // Already an email
+const getUserEmail = (username: string): string => {
+  if (username.includes('@')) {
+    return username; // Already an email
   }
-  return `${email}@dorm.com`; // Convert username to email
+  return `${username}@dorm.com`; // Convert username to email
 };
 
 export default function Login() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    return localStorage.getItem('rememberMe') === 'true';
+  });
   const { login } = useFirebaseAuth();
   const [, setLocation] = useLocation();
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      username: localStorage.getItem('rememberedUsername') || "",
       password: "",
     },
   });
@@ -44,8 +47,17 @@ export default function Login() {
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     try {
-      const email = getUserEmail(data.email);
+      const email = getUserEmail(data.username);
       const result = await login(email, data.password);
+      
+      // Handle remember me functionality
+      if (rememberMe) {
+        localStorage.setItem('rememberedUsername', data.username);
+        localStorage.setItem('rememberMe', 'true');
+      } else {
+        localStorage.removeItem('rememberedUsername');
+        localStorage.removeItem('rememberMe');
+      }
       
       if (result.success) {
         toast({
@@ -96,17 +108,17 @@ export default function Login() {
                   
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <div>
-                      <Label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</Label>
+                      <Label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username</Label>
                       <Input
-                        id="email"
+                        id="username"
                         type="text"
-                        placeholder="you@example.com"
+                        placeholder="james"
                         className="w-full h-12 px-4 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
-                        {...form.register("email")}
-                        data-testid="input-email"
+                        {...form.register("username")}
+                        data-testid="input-username"
                       />
-                      {form.formState.errors.email && (
-                        <p className="text-sm text-red-500 mt-1">{form.formState.errors.email.message}</p>
+                      {form.formState.errors.username && (
+                        <p className="text-sm text-red-500 mt-1">{form.formState.errors.username.message}</p>
                       )}
                     </div>
 
@@ -135,7 +147,13 @@ export default function Login() {
                     </div>
 
                     <div className="flex items-center">
-                      <input type="checkbox" id="remember" className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded" />
+                      <input 
+                        type="checkbox" 
+                        id="remember" 
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded" 
+                      />
                       <label htmlFor="remember" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">Remember me</label>
                     </div>
 
@@ -158,14 +176,14 @@ export default function Login() {
                 </div>
               </div>
               
-              {/* Right side - Illustration */}
+              {/* Right side - Logo and Title */}
               <div className="w-1/2 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-800 dark:to-purple-900 flex items-center justify-center p-12">
                 <div className="text-center">
-                  <div className="w-80 h-80 mx-auto mb-8 bg-gradient-to-br from-purple-200 to-purple-300 dark:from-purple-700 dark:to-purple-800 rounded-2xl flex items-center justify-center">
-                    <div className="text-6xl">👩‍💻</div>
+                  <div className="w-80 h-80 mx-auto mb-8 flex items-center justify-center">
+                    <img src={logoUrl} alt="DormVault" className="w-72 h-auto object-contain" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Welcome Back!</h2>
-                  <p className="text-gray-600 dark:text-gray-300">Login to access your dormitory management dashboard</p>
+                  <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-4">DormVault</h2>
+                  <p className="text-gray-600 dark:text-gray-300">Dormitory Management System</p>
                 </div>
               </div>
             </div>
@@ -187,17 +205,17 @@ export default function Login() {
             
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <div>
-                <Label htmlFor="email-mobile" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</Label>
+                <Label htmlFor="username-mobile" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username</Label>
                 <Input
-                  id="email-mobile"
+                  id="username-mobile"
                   type="text"
-                  placeholder="you@example.com"
+                  placeholder="james"
                   className="w-full h-11 px-4 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-white transition-all"
-                  {...form.register("email")}
-                  data-testid="input-email-mobile"
+                  {...form.register("username")}
+                  data-testid="input-username-mobile"
                 />
-                {form.formState.errors.email && (
-                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.email.message}</p>
+                {form.formState.errors.username && (
+                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.username.message}</p>
                 )}
               </div>
 
@@ -226,7 +244,13 @@ export default function Login() {
               </div>
 
               <div className="flex items-center text-sm">
-                <input type="checkbox" id="remember-mobile" className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded" />
+                <input 
+                  type="checkbox" 
+                  id="remember-mobile" 
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded" 
+                />
                 <label htmlFor="remember-mobile" className="ml-2 text-gray-700 dark:text-gray-300">Remember me</label>
               </div>
 
