@@ -14,11 +14,30 @@ export const loginWithEmail = async (email: string, password: string) => {
 };
 
 export const createUserWithEmail = async (email: string, password: string) => {
-  // Prevent automatic sign-in after creation
-  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-  // You might want to sign out the newly created user immediately if it's an admin-created account
-  // await signOut(auth); // Uncomment if you want to force sign out immediately
-  return userCredential;
+  return await createUserWithEmailAndPassword(auth, email, password);
+};
+
+export const createUserWithoutSignIn = async (email: string, password: string) => {
+  // Create a secondary app instance to avoid affecting current auth state
+  const secondaryApp = initializeApp(firebaseConfig, "secondary");
+  const secondaryAuth = getAuth(secondaryApp);
+  
+  try {
+    // Create user with secondary auth instance
+    const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+    
+    // Sign out from secondary auth to prevent any session conflicts
+    await signOut(secondaryAuth);
+    
+    // Clean up the secondary app
+    await deleteApp(secondaryApp);
+    
+    return userCredential;
+  } catch (error) {
+    // Clean up secondary app even if there's an error
+    await deleteApp(secondaryApp);
+    throw error;
+  }
 };
 
 export const logout = async () => {
