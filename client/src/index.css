@@ -136,3 +136,30 @@
 *::-webkit-scrollbar {
   display: none; /* Safari and Chrome */
 }
+
+/* Mobile dialog positioning fix */
+@media (max-width: 640px) {
+  [data-radix-popper-content-wrapper] {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 90vw !important;
+    max-width: 24rem !important;
+    max-height: 80vh !important;
+    margin: 0 !important;
+    inset: auto !important;
+  }
+  
+  .dialog-content-mobile {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 90vw !important;
+    max-width: 24rem !important;
+    max-height: 80vh !important;
+    margin: 0 !important;
+    inset: auto !important;
+  }
+}
