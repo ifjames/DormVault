@@ -12,20 +12,24 @@ import { dormersService } from "@/lib/firestoreService";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
-interface MonthlyAttendanceSummary {
+interface MonthlyStayRecord {
   dormerId: string;
   dormerName: string;
   room: string;
   month: string;
   daysStayed: number;
   totalDays: number;
-  attendanceRate: number;
-  notes: string[];
+  occupancyRate: number;
+  stayDates: Array<{
+    date: string;
+    day: number;
+    note: string;
+  }>;
   monthlyRent: number;
   estimatedRentShare: number;
 }
 
-export default function AttendanceHistory() {
+export default function StayRecordsHistory() {
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -39,40 +43,44 @@ export default function AttendanceHistory() {
     queryFn: dormersService.getAll,
   });
 
-  // Fetch attendance data for selected month
-  const { data: monthlyAttendance, isLoading } = useQuery({
-    queryKey: ['attendance-history', selectedMonth, selectedDormer],
+  // Fetch stay records data for selected month
+  const { data: monthlyStayRecords, isLoading } = useQuery({
+    queryKey: ['stay-records-history', selectedMonth, selectedDormer],
     queryFn: async () => {
       if (!selectedMonth) return [];
       
       try {
-        const summaries: MonthlyAttendanceSummary[] = [];
+        const summaries: MonthlyStayRecord[] = [];
         const dormersToProcess = selectedDormer === "all" 
           ? (dormers || [])
           : (dormers || []).filter((d: any) => d.id === selectedDormer);
         
         for (const dormer of dormersToProcess) {
           const dormerData = dormer as any;
-          // Get attendance records for this dormer and month
-          const attendanceRef = collection(db, 'attendance');
-          const attendanceQuery = query(
-            attendanceRef,
+          // Get stay records for this dormer and month
+          const stayRecordsRef = collection(db, 'attendance');
+          const stayRecordsQuery = query(
+            stayRecordsRef,
             where("dormerId", "==", dormerData.id),
             where("month", "==", selectedMonth)
           );
-          const attendanceSnapshot = await getDocs(attendanceQuery);
+          const stayRecordsSnapshot = await getDocs(stayRecordsQuery);
           
-          const attendanceRecords = attendanceSnapshot.docs.map(doc => doc.data());
-          const daysStayed = attendanceRecords.filter(record => record.isPresent).length;
-          const notes = attendanceRecords
-            .filter(record => record.note && record.note.trim())
-            .map(record => record.note);
+          const allRecords = stayRecordsSnapshot.docs.map(doc => doc.data());
+          const stayRecords = allRecords.filter(record => record.isPresent);
+          const daysStayed = stayRecords.length;
+          
+          const stayDates = stayRecords.map(record => ({
+            date: record.date,
+            day: new Date(record.date).getDate(),
+            note: record.note || ''
+          })).sort((a, b) => a.day - b.day);
           
           // Calculate total days in the month
           const [year, monthNum] = selectedMonth.split('-');
           const totalDays = new Date(parseInt(year), parseInt(monthNum), 0).getDate();
           
-          const attendanceRate = totalDays > 0 ? Math.round((daysStayed / totalDays) * 100) : 0;
+          const occupancyRate = totalDays > 0 ? Math.round((daysStayed / totalDays) * 100) : 0;
           const estimatedRentShare = Math.round((daysStayed / totalDays) * dormerData.monthlyRent);
           
           summaries.push({
@@ -82,8 +90,8 @@ export default function AttendanceHistory() {
             month: selectedMonth,
             daysStayed,
             totalDays,
-            attendanceRate,
-            notes,
+            occupancyRate,
+            stayDates,
             monthlyRent: dormerData.monthlyRent,
             estimatedRentShare,
           });
@@ -91,7 +99,7 @@ export default function AttendanceHistory() {
         
         return summaries.sort((a, b) => b.daysStayed - a.daysStayed);
       } catch (error) {
-        console.error('Error fetching attendance history:', error);
+        console.error('Error fetching stay records history:', error);
         return [];
       }
     },
@@ -117,20 +125,14 @@ export default function AttendanceHistory() {
   const currentMonthDisplay = monthOptions.find(opt => opt.value === selectedMonth)?.label || selectedMonth;
 
   // Calculate summary statistics
-  const totalDormers = monthlyAttendance?.length || 0;
-  const avgAttendanceRate = totalDormers > 0 
-    ? Math.round(monthlyAttendance!.reduce((sum, d) => sum + d.attendanceRate, 0) / totalDormers)
+  const totalDormers = monthlyStayRecords?.length || 0;
+  const avgOccupancyRate = totalDormers > 0 
+    ? Math.round(monthlyStayRecords!.reduce((sum, d) => sum + d.occupancyRate, 0) / totalDormers)
     : 0;
-  const totalDaysStayed = monthlyAttendance?.reduce((sum, d) => sum + d.daysStayed, 0) || 0;
-  const totalRentCollected = monthlyAttendance?.reduce((sum, d) => sum + d.estimatedRentShare, 0) || 0;
+  const totalDaysStayed = monthlyStayRecords?.reduce((sum, d) => sum + d.daysStayed, 0) || 0;
+  const totalRentCollected = monthlyStayRecords?.reduce((sum, d) => sum + d.estimatedRentShare, 0) || 0;
 
-  const getAttendanceColor = (rate: number) => {
-    if (rate >= 80) return "text-green-600";
-    if (rate >= 60) return "text-yellow-600";
-    return "text-red-600";
-  };
-
-  const getAttendanceBadgeVariant = (rate: number): "default" | "secondary" | "destructive" | "outline" => {
+  const getOccupancyBadgeVariant = (rate: number): "default" | "secondary" | "destructive" | "outline" => {
     if (rate >= 80) return "default";
     if (rate >= 60) return "secondary";
     return "destructive";
@@ -141,7 +143,7 @@ export default function AttendanceHistory() {
       <Card>
         <CardContent className="p-6 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <div className="mt-2 text-muted-foreground">Loading attendance history...</div>
+          <div className="mt-2 text-muted-foreground">Loading stay records...</div>
         </CardContent>
       </Card>
     );
@@ -154,7 +156,7 @@ export default function AttendanceHistory() {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <History className="h-5 w-5" />
-            <span>Attendance History</span>
+            <span>Stay Records History</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -202,8 +204,8 @@ export default function AttendanceHistory() {
                 <div className="text-sm text-blue-600 dark:text-blue-400">Total Dormers</div>
               </div>
               <div className="text-center p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{avgAttendanceRate}%</div>
-                <div className="text-sm text-green-600 dark:text-green-400">Avg Attendance</div>
+                <div className="text-2xl font-bold text-green-600">{avgOccupancyRate}%</div>
+                <div className="text-sm text-green-600 dark:text-green-400">Avg Occupancy</div>
               </div>
               <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
                 <div className="text-2xl font-bold text-purple-600">{totalDaysStayed}</div>
@@ -218,13 +220,13 @@ export default function AttendanceHistory() {
         </CardContent>
       </Card>
 
-      {/* Detailed Attendance Table */}
+      {/* Detailed Stay Records Table */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Calendar className="h-5 w-5" />
-              <span>{currentMonthDisplay} Attendance Details</span>
+              <span>{currentMonthDisplay} Stay Records</span>
             </div>
             <Button variant="outline" size="sm">
               <Download className="h-4 w-4 mr-2" />
@@ -233,7 +235,7 @@ export default function AttendanceHistory() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {monthlyAttendance && monthlyAttendance.length > 0 ? (
+          {monthlyStayRecords && monthlyStayRecords.length > 0 ? (
             <div className="space-y-4">
               <Table>
                 <TableHeader>
@@ -241,14 +243,14 @@ export default function AttendanceHistory() {
                     <TableHead>Dormer</TableHead>
                     <TableHead>Room</TableHead>
                     <TableHead className="text-center">Days Stayed</TableHead>
-                    <TableHead className="text-center">Attendance Rate</TableHead>
+                    <TableHead className="text-center">Occupancy Rate</TableHead>
                     <TableHead className="text-center">Progress</TableHead>
                     <TableHead className="text-right">Est. Rent Share</TableHead>
                     <TableHead className="text-center">Notes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {monthlyAttendance.map((summary) => (
+                  {monthlyStayRecords.map((summary: any) => (
                     <TableRow key={summary.dormerId}>
                       <TableCell>
                         <div className="flex items-center space-x-2">
@@ -265,14 +267,14 @@ export default function AttendanceHistory() {
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge variant={getAttendanceBadgeVariant(summary.attendanceRate)}>
-                          {summary.attendanceRate}%
+                        <Badge variant={getOccupancyBadgeVariant(summary.occupancyRate)}>
+                          {summary.occupancyRate}%
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="w-full max-w-20 mx-auto">
                           <Progress 
-                            value={summary.attendanceRate} 
+                            value={summary.occupancyRate} 
                             className="h-2" 
                           />
                         </div>
@@ -283,9 +285,9 @@ export default function AttendanceHistory() {
                         </span>
                       </TableCell>
                       <TableCell className="text-center">
-                        {summary.notes.length > 0 ? (
+                        {summary.stayDates.filter((d: any) => d.note).length > 0 ? (
                           <Badge variant="secondary" className="text-xs">
-                            {summary.notes.length} note{summary.notes.length > 1 ? 's' : ''}
+                            {summary.stayDates.filter((d: any) => d.note).length} note{summary.stayDates.filter((d: any) => d.note).length > 1 ? 's' : ''}
                           </Badge>
                         ) : (
                           <span className="text-muted-foreground text-xs">None</span>
@@ -296,43 +298,58 @@ export default function AttendanceHistory() {
                 </TableBody>
               </Table>
               
-              {/* Notes Section */}
-              {monthlyAttendance.some(s => s.notes.length > 0) && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-3 flex items-center space-x-2">
-                    <Eye className="h-4 w-4" />
-                    <span>Notes Summary</span>
-                  </h3>
-                  <div className="space-y-3">
-                    {monthlyAttendance
-                      .filter(s => s.notes.length > 0)
-                      .map(summary => (
-                        <Card key={summary.dormerId} className="bg-muted/30">
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium">{summary.dormerName}</span>
-                              <Badge variant="outline">Room {summary.room}</Badge>
-                            </div>
-                            <ul className="space-y-1">
-                              {summary.notes.map((note, index) => (
-                                <li key={index} className="text-sm text-muted-foreground">
-                                  • {note}
-                                </li>
-                              ))}
-                            </ul>
-                          </CardContent>
-                        </Card>
-                      ))}
-                  </div>
+              {/* Detailed Stay Records */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-3 flex items-center space-x-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>Daily Stay Details</span>
+                </h3>
+                <div className="space-y-4">
+                  {monthlyStayRecords.map((summary: any) => (
+                    <Card key={summary.dormerId} className="bg-muted/30">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium">{summary.dormerName}</span>
+                            <Badge variant="outline">Room {summary.room}</Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {summary.daysStayed} days stayed
+                          </div>
+                        </div>
+                        
+                        {summary.stayDates.length > 0 ? (
+                          <div className="grid grid-cols-7 gap-2">
+                            {summary.stayDates.map((stayDate: any, index: number) => (
+                              <div key={index} className="text-center">
+                                <div className="w-8 h-8 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full flex items-center justify-center text-xs font-medium mb-1">
+                                  {stayDate.day}
+                                </div>
+                                {stayDate.note && (
+                                  <div className="text-xs text-muted-foreground bg-background rounded px-1 py-0.5 truncate" title={stayDate.note}>
+                                    {stayDate.note.length > 8 ? stayDate.note.substring(0, 8) + '...' : stayDate.note}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center text-muted-foreground py-4">
+                            No stays recorded for this month
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-              )}
+              </div>
             </div>
           ) : (
             <div className="text-center py-8">
               <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Attendance Data</h3>
+              <h3 className="text-lg font-semibold mb-2">No Stay Records</h3>
               <p className="text-muted-foreground">
-                No attendance records found for {currentMonthDisplay}.
+                No stay records found for {currentMonthDisplay}.
               </p>
             </div>
           )}

@@ -270,7 +270,7 @@ export default function DormerAttendance() {
     return (
       <Card>
         <CardContent className="p-6 text-center">
-          <div className="text-muted-foreground">Please log in to view attendance</div>
+          <div className="text-muted-foreground">Please log in to view your stay records</div>
         </CardContent>
       </Card>
     );
@@ -296,7 +296,7 @@ export default function DormerAttendance() {
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Calendar className="h-5 w-5" />
-            <span>Attendance Tracker</span>
+            <span>Stay Tracker</span>
           </div>
           <div className="flex items-center space-x-4">
             <Badge variant="outline" className="text-sm">
@@ -315,11 +315,7 @@ export default function DormerAttendance() {
           <div className="flex items-center space-x-6 p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center space-x-2">
               <CalendarCheck className="h-4 w-4 text-green-600" />
-              <span className="text-sm">Present</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <CalendarX className="h-4 w-4 text-red-600" />
-              <span className="text-sm">Absent</span>
+              <span className="text-sm">Stayed in Dorm</span>
             </div>
             <div className="flex items-center space-x-2">
               <Info className="h-4 w-4 text-blue-600" />
@@ -327,12 +323,12 @@ export default function DormerAttendance() {
             </div>
           </div>
 
-          {/* Attendance Grid */}
+          {/* Stay Records Grid */}
           <div className="border rounded-lg overflow-hidden">
             <div className="grid grid-cols-5 gap-0 bg-muted text-xs font-medium">
               <div className="p-2 border-r border-b">Name</div>
               <div className="p-2 border-r border-b text-center">Day</div>
-              <div className="p-2 border-r border-b text-center">Stayed?</div>
+              <div className="p-2 border-r border-b text-center">Stayed</div>
               <div className="p-2 border-r border-b text-center">Note</div>
               <div className="p-2 border-b text-center">Info</div>
             </div>
@@ -394,21 +390,21 @@ export default function DormerAttendance() {
             <Card>
               <CardContent className="p-4 text-center">
                 <div className="text-2xl font-bold text-green-600">{daysStayed}</div>
-                <div className="text-sm text-muted-foreground">Days Present</div>
+                <div className="text-sm text-muted-foreground">Days Stayed</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-red-600">{attendanceData.length - daysStayed}</div>
-                <div className="text-sm text-muted-foreground">Days Absent</div>
+                <div className="text-2xl font-bold text-blue-600">{attendanceData.length}</div>
+                <div className="text-sm text-muted-foreground">Total Days</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-purple-600">
                   {attendanceData.length > 0 ? Math.round((daysStayed / attendanceData.length) * 100) : 0}%
                 </div>
-                <div className="text-sm text-muted-foreground">Attendance Rate</div>
+                <div className="text-sm text-muted-foreground">Occupancy Rate</div>
               </CardContent>
             </Card>
           </div>

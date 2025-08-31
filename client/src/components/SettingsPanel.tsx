@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Settings, Calendar, History, Users } from "lucide-react";
 import BillingPeriodManager from "@/components/BillingPeriodManager";
-import AttendanceHistory from "@/components/AttendanceHistory";
+import StayRecordsHistory from "@/components/AttendanceHistory";
 
 export default function SettingsPanel() {
   const [activeSettingsTab, setActiveSettingsTab] = useState("billing");
@@ -26,7 +26,7 @@ export default function SettingsPanel() {
               </TabsTrigger>
               <TabsTrigger value="attendance" className="flex items-center space-x-2" data-testid="settings-tab-attendance">
                 <History className="h-4 w-4" />
-                <span>Attendance History</span>
+                <span>Stay Records</span>
               </TabsTrigger>
             </TabsList>
 
@@ -35,7 +35,7 @@ export default function SettingsPanel() {
             </TabsContent>
             
             <TabsContent value="attendance" className="space-y-4">
-              <AttendanceHistory />
+              <StayRecordsHistory />
             </TabsContent>
           </Tabs>
         </CardContent>
