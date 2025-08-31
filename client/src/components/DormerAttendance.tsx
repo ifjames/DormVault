@@ -1,14 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { db, COLLECTIONS } from "@/lib/firebase";
-import { collection, query, where, getDocs, doc, setDoc, orderBy } from "firebase/firestore";
-import { Calendar, CalendarCheck, CalendarX, Info } from "lucide-react";
+import { collection, query, where, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
+import { Calendar, CalendarCheck, CalendarX, Info, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface AttendanceDay {
   day: number;
@@ -31,28 +33,61 @@ export default function DormerAttendance() {
   const queryClient = useQueryClient();
   const { user, isLoading: authLoading } = useFirebaseAuth();
   const [dormerData, setDormerData] = useState<DormerData | null>(null);
-  // Calculate billing period (22nd of current month to 21st of next month)
-  const [billingPeriod] = useState(() => {
-    const today = new Date();
-    const currentDay = today.getDate();
-    
-    // Billing period is always from 22nd to 21st
-    // If today is before the 22nd, use previous month 22nd to current month 21st
-    // If today is 22nd or after, use current month 22nd to next month 21st
-    if (currentDay < 22) {
-      // Previous month 22nd to current month 21st
-      const startDate = new Date(today.getFullYear(), today.getMonth() - 1, 22);
-      const endDate = new Date(today.getFullYear(), today.getMonth(), 21);
-      return { startDate, endDate };
-    } else {
-      // Current month 22nd to next month 21st  
-      const startDate = new Date(today.getFullYear(), today.getMonth(), 22);
-      const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 21);
-      return { startDate, endDate };
-    }
+  const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, boolean>>({});
+  
+  // Fetch current billing period from admin settings
+  const { data: billingPeriod } = useQuery({
+    queryKey: ['billing-period'],
+    queryFn: async () => {
+      try {
+        const docRef = doc(db, 'settings', 'billing-period');
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          return {
+            startDate: new Date(data.startDate),
+            endDate: new Date(data.endDate)
+          };
+        } else {
+          // Fallback to default calculation if no admin setting exists
+          const today = new Date();
+          const currentDay = today.getDate();
+          
+          if (currentDay < 22) {
+            const startDate = new Date(today.getFullYear(), today.getMonth() - 1, 22);
+            const endDate = new Date(today.getFullYear(), today.getMonth(), 21);
+            return { startDate, endDate };
+          } else {
+            const startDate = new Date(today.getFullYear(), today.getMonth(), 22);
+            const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 21);
+            return { startDate, endDate };
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching billing period:', error);
+        // Fallback calculation
+        const today = new Date();
+        const currentDay = today.getDate();
+        
+        if (currentDay < 22) {
+          const startDate = new Date(today.getFullYear(), today.getMonth() - 1, 22);
+          const endDate = new Date(today.getFullYear(), today.getMonth(), 21);
+          return { startDate, endDate };
+        } else {
+          const startDate = new Date(today.getFullYear(), today.getMonth(), 22);
+          const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 21);
+          return { startDate, endDate };
+        }
+      }
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
   });
   
-  const billingPeriodStr = `${billingPeriod.startDate.getFullYear()}-${String(billingPeriod.startDate.getMonth() + 1).padStart(2, '0')}`;
+  const billingPeriodStr = useMemo(() => {
+    if (!billingPeriod) return '';
+    return `${billingPeriod.startDate.getFullYear()}-${String(billingPeriod.startDate.getMonth() + 1).padStart(2, '0')}`;
+  }, [billingPeriod]);
 
   // Remove debug logging
 
@@ -91,10 +126,9 @@ export default function DormerAttendance() {
   const { data: attendance, isLoading } = useQuery({
     queryKey: ['attendance', dormerData?.id, billingPeriodStr],
     queryFn: async () => {
-      if (!dormerData?.id) return [];
+      if (!dormerData?.id || !billingPeriodStr) return [];
       
       try {
-        // Create attendance collection reference
         const attendanceRef = collection(db, 'attendance');
         const q = query(
           attendanceRef,
@@ -104,82 +138,79 @@ export default function DormerAttendance() {
         
         const querySnapshot = await getDocs(q);
         const results = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log('Fetched attendance:', results);
         return results;
       } catch (error) {
         console.error('Error fetching attendance:', error);
         return [];
       }
     },
-    enabled: !!dormerData?.id,
+    enabled: !!dormerData?.id && !!billingPeriodStr,
   });
 
   const updateAttendanceMutation = useMutation({
     mutationFn: async (data: { dormerId: string; date: string; isPresent: boolean; note?: string }) => {
-      try {
-        console.log('Updating attendance:', data);
-        const attendanceRef = doc(db, 'attendance', `${data.dormerId}_${data.date}`);
-        const attendanceData = {
-          dormerId: data.dormerId,
-          date: data.date,
-          month: billingPeriodStr,
-          isPresent: data.isPresent,
-          note: data.note || '',
-          updatedAt: new Date()
-        };
-        console.log('Saving to Firestore:', attendanceData);
-        await setDoc(attendanceRef, attendanceData, { merge: true });
-        console.log('Successfully saved attendance');
-        return data;
-      } catch (error) {
-        console.error('Error saving attendance:', error);
-        throw error;
-      }
+      const attendanceRef = doc(db, 'attendance', `${data.dormerId}_${data.date}`);
+      const attendanceData = {
+        dormerId: data.dormerId,
+        date: data.date,
+        month: billingPeriodStr,
+        isPresent: data.isPresent,
+        note: data.note || '',
+        updatedAt: new Date()
+      };
+      await setDoc(attendanceRef, attendanceData, { merge: true });
+      return data;
     },
-    onSuccess: (data) => {
-      console.log('Attendance mutation successful:', data);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      toast({
-        title: "Attendance Updated",
-        description: "Your attendance has been saved successfully",
-      });
+      // Clear optimistic update
+      setOptimisticUpdates({});
     },
     onError: (error) => {
       console.error('Attendance update error:', error);
+      // Revert optimistic update
+      setOptimisticUpdates({});
       toast({
         title: "Error",
-        description: "Failed to update attendance. Please check your connection.",
+        description: "Failed to update attendance. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  const generateBillingPeriodDays = () => {
-    const days = [];
-    const currentDate = new Date(billingPeriod.startDate);
-    
-    // Generate all days from start date to end date
-    while (currentDate <= billingPeriod.endDate) {
-      const dateStr = currentDate.toISOString().split('T')[0];
-      // Create a new date object to avoid mutation issues
-      const dayDate = new Date(currentDate);
-      days.push({
-        date: dateStr,
-        day: dayDate.getDate(), // Get the correct day of month
-        month: dayDate.getMonth(),
-        year: dayDate.getFullYear(),
-        isPresent: isAttendanceMarked(dateStr),
-      });
-      // Move to next day
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-    
-    return days;
-  };
 
   const isAttendanceMarked = (date: string) => {
     return attendance?.some((a: any) => a.date === date && a.isPresent) || false;
   };
+
+  const generateBillingPeriodDays = useMemo(() => {
+    if (!billingPeriod) return [];
+    
+    const days = [];
+    const currentDate = new Date(billingPeriod.startDate);
+    
+    while (currentDate <= billingPeriod.endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      const dayDate = new Date(currentDate);
+      const today = new Date();
+      const isToday = dateStr === today.toISOString().split('T')[0];
+      const isPast = dayDate < today;
+      
+      days.push({
+        date: dateStr,
+        day: dayDate.getDate(),
+        month: dayDate.getMonth(),
+        year: dayDate.getFullYear(),
+        isPresent: optimisticUpdates[dateStr] ?? isAttendanceMarked(dateStr),
+        isToday,
+        isPast,
+        dayName: dayDate.toLocaleDateString('en-US', { weekday: 'short' }),
+      });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return days;
+  }, [billingPeriod, attendance, optimisticUpdates, isAttendanceMarked]);
 
   const getAttendanceNote = (date: string) => {
     const record = attendance?.find((a: any) => a.date === date);
@@ -197,18 +228,23 @@ export default function DormerAttendance() {
     });
   };
 
-  const toggleAttendance = (date: string) => {
+  const toggleAttendance = useCallback((date: string) => {
     if (!dormerData?.id) return;
     
-    const isCurrentlyMarked = isAttendanceMarked(date);
+    const isCurrentlyMarked = optimisticUpdates[date] ?? isAttendanceMarked(date);
+    const newStatus = !isCurrentlyMarked;
+    
+    // Optimistic update
+    setOptimisticUpdates(prev => ({ ...prev, [date]: newStatus }));
+    
     const currentNote = getAttendanceNote(date);
     updateAttendanceMutation.mutate({
       dormerId: dormerData.id,
       date,
-      isPresent: !isCurrentlyMarked,
+      isPresent: newStatus,
       note: currentNote,
     });
-  };
+  }, [dormerData?.id, optimisticUpdates, attendance, updateAttendanceMutation]);
 
   const getDaysStayed = () => {
     return attendance?.filter((a: any) => a.isPresent).length || 0;
@@ -240,10 +276,19 @@ export default function DormerAttendance() {
     );
   }
 
-  const attendanceData = generateBillingPeriodDays();
+  const attendanceData = generateBillingPeriodDays;
   const daysStayed = getDaysStayed();
-  const today = new Date().getDate();
-  // Remove this line as we no longer need it with the new billing period logic
+  
+  if (!billingPeriod) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <div className="mt-2 text-muted-foreground">Loading billing period...</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -292,31 +337,39 @@ export default function DormerAttendance() {
               <div className="p-2 border-b text-center">Info</div>
             </div>
             
-            {attendanceData.map((attendance, index) => (
-              <div key={attendance.day} className={`grid grid-cols-5 gap-0 border-b hover:bg-muted/30 transition-colors ${
-''
+            {attendanceData.map((attendanceItem: any, index: number) => (
+              <div key={attendanceItem.date} className={`grid grid-cols-5 gap-0 border-b hover:bg-muted/30 transition-colors ${
+                attendanceItem.isToday ? 'bg-blue-50 dark:bg-blue-950/20' : ''
               }`}>
                 <div className="p-2 border-r font-medium text-sm">
                   {index === 0 ? dormerData?.name?.split('@')[0] || dormerData?.name || "" : ""}
                 </div>
-                <div className="p-2 border-r text-center font-mono text-sm">
-                  {attendance.day}
+                <div className="p-2 border-r text-center font-mono text-sm flex items-center justify-center">
+                  <div className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+                    attendanceItem.isToday ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100" : "bg-muted"
+                  )}>
+                    {attendanceItem.day}
+                  </div>
                 </div>
                 <div className="p-2 border-r text-center">
-                  <Checkbox
-                    checked={attendance.isPresent}
-                    onCheckedChange={() => toggleAttendance(attendance.date)}
-                    disabled={updateAttendanceMutation.isPending || isLoading}
-                    data-testid={`attendance-${attendance.day}`}
-                  />
+                  <div className="flex items-center justify-center">
+                    <Switch
+                      checked={attendanceItem.isPresent}
+                      onCheckedChange={() => toggleAttendance(attendanceItem.date)}
+                      disabled={updateAttendanceMutation.isPending || isLoading}
+                      data-testid={`attendance-${attendanceItem.day}`}
+                      className="scale-75"
+                    />
+                  </div>
                 </div>
                 <div className="p-2 border-r text-center">
                   <input
                     type="text"
-                    placeholder="Add note..."
-                    className="w-24 text-xs p-1 border rounded bg-background"
-                    value={getAttendanceNote(attendance.date)}
-                    onChange={(e) => updateNote(attendance.date, e.target.value)}
+                    placeholder="Note..."
+                    className="w-20 text-xs p-1 border rounded bg-background text-center"
+                    value={getAttendanceNote(attendanceItem.date)}
+                    onChange={(e) => updateNote(attendanceItem.date, e.target.value)}
                     disabled={updateAttendanceMutation.isPending}
                   />
                 </div>

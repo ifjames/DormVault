@@ -3,12 +3,13 @@ import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { useTheme } from "@/components/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building, Moon, Sun, LogOut, BarChart3, Calculator, CreditCard, Home, Users } from "lucide-react";
+import { Building, Moon, Sun, LogOut, BarChart3, Calculator, CreditCard, Home, Users, Settings } from "lucide-react";
 import Dashboard from "@/components/Dashboard";
 import BillCalculator from "@/components/BillCalculator";
 import PaymentTracker from "@/components/PaymentTracker";
 import Analytics from "@/components/Analytics";
 import DormerManagement from "@/components/DormerManagement";
+import SettingsPanel from "@/components/SettingsPanel";
 
 export default function DormLayout() {
   const { user, logout } = useFirebaseAuth();
@@ -59,7 +60,7 @@ export default function DormLayout() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsList className="grid w-full grid-cols-6 mb-6">
             <TabsTrigger value="dashboard" className="flex items-center space-x-2" data-testid="tab-dashboard">
               <Home className="h-4 w-4" />
               <span className="hidden md:inline">Dashboard</span>
@@ -85,6 +86,11 @@ export default function DormLayout() {
               <span className="hidden md:inline">Analytics</span>
               <span className="md:hidden">Stats</span>
             </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center space-x-2" data-testid="tab-settings">
+              <Settings className="h-4 w-4" />
+              <span className="hidden md:inline">Settings</span>
+              <span className="md:hidden">Config</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard">
@@ -105,6 +111,10 @@ export default function DormLayout() {
           
           <TabsContent value="analytics">
             <Analytics />
+          </TabsContent>
+          
+          <TabsContent value="settings">
+            <SettingsPanel />
           </TabsContent>
         </Tabs>
       </div>
