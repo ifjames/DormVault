@@ -277,7 +277,7 @@ export default function BillCalculator({ userRole = "admin" }: BillCalculatorPro
             </div>
 
             {/* Meter Readings */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="previousReading">Previous Reading (kWh)</Label>
                 <Input
@@ -298,7 +298,7 @@ export default function BillCalculator({ userRole = "admin" }: BillCalculatorPro
                   data-testid="input-current-reading"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2 md:col-span-1">
                 <Label htmlFor="ratePerKwh">Rate per kWh (₱)</Label>
                 <Input
                   id="ratePerKwh"
@@ -329,8 +329,8 @@ export default function BillCalculator({ userRole = "admin" }: BillCalculatorPro
               {people.map((person, index) => (
                 <Card key={index} className="bg-muted/50">
                   <CardContent className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-                      <div className="md:col-span-3 space-y-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 md:grid-cols-5 gap-3 items-end">
+                      <div className="sm:col-span-2 md:col-span-3 space-y-2">
                         <Label>Person Name</Label>
                         <Select
                           value={person.name}
@@ -358,16 +358,19 @@ export default function BillCalculator({ userRole = "admin" }: BillCalculatorPro
                           data-testid={`input-person-days-${index}`}
                         />
                       </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removePerson(index)}
-                        disabled={people.length === 1}
-                        data-testid={`button-remove-person-${index}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex sm:block">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removePerson(index)}
+                          disabled={people.length === 1}
+                          data-testid={`button-remove-person-${index}`}
+                          className="w-full sm:w-auto"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -402,7 +405,7 @@ export default function BillCalculator({ userRole = "admin" }: BillCalculatorPro
                   <strong>Period:</strong> {formatDateRange(billResult.startDate, billResult.endDate)}
                 </div>
                 
-                <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                   <div>
                     <small className="text-muted-foreground">Previous Reading</small>
                     <div className="font-medium">{billResult.previousReading.toLocaleString()} kWh</div>
@@ -413,7 +416,7 @@ export default function BillCalculator({ userRole = "admin" }: BillCalculatorPro
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                   <div>
                     <small className="text-muted-foreground">Consumption</small>
                     <div className="font-medium text-primary">{billResult.consumption.toLocaleString()} kWh</div>
@@ -554,7 +557,7 @@ export default function BillCalculator({ userRole = "admin" }: BillCalculatorPro
               {/* Bill Summary */}
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-4 rounded-lg border">
                 <h3 className="font-semibold mb-3">Bill Summary</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <small className="text-muted-foreground">Period</small>
                     <div className="font-medium">{formatDateRange(selectedBill.startDate, selectedBill.endDate)}</div>

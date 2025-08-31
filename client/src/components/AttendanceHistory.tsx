@@ -198,7 +198,7 @@ export default function StayRecordsHistory() {
             </div>
 
             {/* Summary Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mt-6">
               <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
                 <div className="text-2xl font-bold text-blue-600">{totalDormers}</div>
                 <div className="text-sm text-blue-600 dark:text-blue-400">Total Dormers</div>

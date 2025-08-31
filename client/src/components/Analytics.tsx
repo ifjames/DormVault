@@ -32,7 +32,7 @@ export default function Analytics() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         {[...Array(4)].map((_, i) => (
           <Card key={i} className="animate-pulse">
             <CardContent className="p-6">
@@ -67,7 +67,7 @@ export default function Analytics() {
   return (
     <div className="space-y-6">
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-0">
           <CardContent className="p-6 text-center">
             <Users className="h-12 w-12 mx-auto mb-3 opacity-80" />

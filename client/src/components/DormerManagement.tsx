@@ -212,7 +212,7 @@ export default function DormerManagement() {
                 <DialogTitle>{editingDormer ? "Edit Dormer" : "Add New Dormer"}</DialogTitle>
               </DialogHeader>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
                     <Input
@@ -241,7 +241,7 @@ export default function DormerManagement() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="monthlyRent">Monthly Rent (₱)</Label>
                     <Input
@@ -280,7 +280,7 @@ export default function DormerManagement() {
                   />
                 </div>
 
-                <div className="flex space-x-2">
+                <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2 sm:gap-0">
                   <Button
                     type="button"
                     variant="outline"
@@ -314,67 +314,71 @@ export default function DormerManagement() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Room</TableHead>
-                  <TableHead>Rent</TableHead>
-                  <TableHead>Days Stayed</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {dormers?.map((dormer: any) => (
-                  <TableRow key={dormer.id} data-testid={`dormer-row-${dormer.id}`}>
-                    <TableCell className="font-medium">{dormer.name}</TableCell>
-                    <TableCell>{dormer.room}</TableCell>
-                    <TableCell>₱{parseFloat(dormer.monthlyRent || 1500).toLocaleString()}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>{calculateDaysStayed(dormer)} days</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {dormer.isActive ? (
-                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                          <UserCheck className="h-3 w-3 mr-1" />
-                          Active
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary">
-                          <UserX className="h-3 w-3 mr-1" />
-                          Inactive
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => startEdit(dormer)}
-                          data-testid={`button-edit-dormer-${dormer.id}`}
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => deleteDormerMutation.mutate(dormer.id)}
-                          disabled={deleteDormerMutation.isPending}
-                          data-testid={`button-delete-dormer-${dormer.id}`}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[120px]">Name</TableHead>
+                    <TableHead className="min-w-[80px]">Room</TableHead>
+                    <TableHead className="min-w-[100px]">Rent</TableHead>
+                    <TableHead className="min-w-[120px]">Days Stayed</TableHead>
+                    <TableHead className="min-w-[100px]">Status</TableHead>
+                    <TableHead className="min-w-[120px]">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {dormers?.map((dormer: any) => (
+                    <TableRow key={dormer.id} data-testid={`dormer-row-${dormer.id}`}>
+                      <TableCell className="font-medium">{dormer.name}</TableCell>
+                      <TableCell>{dormer.room}</TableCell>
+                      <TableCell>₱{parseFloat(dormer.monthlyRent || 1500).toLocaleString()}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span>{calculateDaysStayed(dormer)} days</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {dormer.isActive ? (
+                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            <UserCheck className="h-3 w-3 mr-1" />
+                            Active
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">
+                            <UserX className="h-3 w-3 mr-1" />
+                            Inactive
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => startEdit(dormer)}
+                            data-testid={`button-edit-dormer-${dormer.id}`}
+                            className="min-w-[2.5rem]"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => deleteDormerMutation.mutate(dormer.id)}
+                            disabled={deleteDormerMutation.isPending}
+                            data-testid={`button-delete-dormer-${dormer.id}`}
+                            className="min-w-[2.5rem]"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

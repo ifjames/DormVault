@@ -178,7 +178,7 @@ export default function PaymentTracker() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="month">Month</Label>
                     <Input
@@ -238,7 +238,7 @@ export default function PaymentTracker() {
                   />
                 </div>
 
-                <div className="flex space-x-2">
+                <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2 sm:gap-0">
                   <Button
                     type="button"
                     variant="outline"
@@ -266,50 +266,53 @@ export default function PaymentTracker() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Dormer</TableHead>
-                  <TableHead>Month</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {payments?.map((payment: any) => (
-                  <TableRow key={payment.id} data-testid={`payment-row-${payment.id}`}>
-                    <TableCell className="font-medium">
-                      {getDormerName(payment.dormerId)}
-                    </TableCell>
-                    <TableCell>{payment.month}</TableCell>
-                    <TableCell>₱{parseFloat(payment.amount).toLocaleString()}</TableCell>
-                    <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-1">
-                        {payment.status === "pending" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => markAsPaidMutation.mutate(payment.id)}
-                            disabled={markAsPaidMutation.isPending}
-                            data-testid={`button-mark-paid-${payment.id}`}
-                          >
-                            <Check className="h-3 w-3" />
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline" data-testid={`button-view-payment-${payment.id}`}>
-                          <Eye className="h-3 w-3" />
-                        </Button>
-                        <Button size="sm" variant="outline" data-testid={`button-edit-payment-${payment.id}`}>
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[150px]">Dormer</TableHead>
+                    <TableHead className="min-w-[100px]">Month</TableHead>
+                    <TableHead className="min-w-[100px]">Amount</TableHead>
+                    <TableHead className="min-w-[100px]">Status</TableHead>
+                    <TableHead className="min-w-[150px]">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {payments?.map((payment: any) => (
+                    <TableRow key={payment.id} data-testid={`payment-row-${payment.id}`}>
+                      <TableCell className="font-medium">
+                        {getDormerName(payment.dormerId)}
+                      </TableCell>
+                      <TableCell>{payment.month}</TableCell>
+                      <TableCell>₱{parseFloat(payment.amount).toLocaleString()}</TableCell>
+                      <TableCell>{getStatusBadge(payment.status)}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          {payment.status === "pending" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => markAsPaidMutation.mutate(payment.id)}
+                              disabled={markAsPaidMutation.isPending}
+                              data-testid={`button-mark-paid-${payment.id}`}
+                              className="min-w-[2.5rem]"
+                            >
+                              <Check className="h-3 w-3" />
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline" data-testid={`button-view-payment-${payment.id}`} className="min-w-[2.5rem]">
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" data-testid={`button-edit-payment-${payment.id}`} className="min-w-[2.5rem]">
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -324,7 +327,7 @@ export default function PaymentTracker() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4 text-center mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center mb-4">
               <div className="p-3 border rounded-lg">
                 <CheckCircle className="h-6 w-6 text-green-600 mx-auto mb-2" />
                 <div className="text-2xl font-bold text-green-600" data-testid="stat-paid-count">{paidCount}</div>
