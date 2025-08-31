@@ -38,7 +38,23 @@ export default function Login() {
     },
   });
 
+  // Debug form state
+  console.log("Form errors:", form.formState.errors);
+  console.log("Form values:", form.watch());
+
   const onSubmit = async (data: LoginForm) => {
+    console.log("Form data:", data); // Debug log
+    
+    // Validate that we have both email and password
+    if (!data.email || !data.password) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter both email and password",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -69,9 +85,10 @@ export default function Login() {
         });
       }
     } catch (error: any) {
+      console.error("Login error:", error); // Debug log
       toast({
         title: "Login Failed",
-        description: "Invalid email or password. Make sure you have an account created in Firebase.",
+        description: error.message || "Invalid email or password. Make sure you have an account created in Firebase.",
         variant: "destructive",
       });
     } finally {
