@@ -11,9 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
 import { Users, Plus, Eye, Edit, Trash2, UserCheck, UserX, Calendar } from "lucide-react";
 import { dormersService } from "@/lib/firestoreService";
+import { notify, modal } from "@/lib/sweetAlert";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
@@ -29,7 +29,6 @@ const dormerSchema = z.object({
 type DormerForm = z.infer<typeof dormerSchema>;
 
 export default function DormerManagement() {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingDormer, setEditingDormer] = useState<any>(null);
@@ -55,60 +54,57 @@ export default function DormerManagement() {
   const createDormerMutation = useMutation({
     mutationFn: dormersService.create,
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Dormer added successfully",
-      });
+      notify.success(
+        "Dormer Added!",
+        "Dormer added successfully"
+      );
       queryClient.invalidateQueries({ queryKey: ["dormers"] });
       queryClient.invalidateQueries({ queryKey: ["analytics"] });
       setIsAddDialogOpen(false);
       form.reset();
     },
     onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to add dormer",
-        variant: "destructive",
-      });
+      notify.error(
+        "Add Failed",
+        "Failed to add dormer"
+      );
     },
   });
 
   const updateDormerMutation = useMutation({
     mutationFn: ({ id, ...data }: any) => dormersService.update(id, data),
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Dormer updated successfully",
-      });
+      notify.success(
+        "Dormer Updated!",
+        "Dormer updated successfully"
+      );
       queryClient.invalidateQueries({ queryKey: ["dormers"] });
       queryClient.invalidateQueries({ queryKey: ["analytics"] });
       setEditingDormer(null);
     },
     onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update dormer",
-        variant: "destructive",
-      });
+      notify.error(
+        "Update Failed",
+        "Failed to update dormer"
+      );
     },
   });
 
   const deleteDormerMutation = useMutation({
     mutationFn: dormersService.delete,
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Dormer removed successfully",
-      });
+      notify.success(
+        "Dormer Removed!",
+        "Dormer removed successfully"
+      );
       queryClient.invalidateQueries({ queryKey: ["dormers"] });
       queryClient.invalidateQueries({ queryKey: ["analytics"] });
     },
     onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to remove dormer",
-        variant: "destructive",
-      });
+      notify.error(
+        "Remove Failed",
+        "Failed to remove dormer"
+      );
     },
   });
 
@@ -365,7 +361,17 @@ export default function DormerManagement() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => deleteDormerMutation.mutate(dormer.id)}
+                            onClick={async () => {
+                              const confirmed = await modal.confirm(
+                                "Delete Dormer?",
+                                `Are you sure you want to delete ${dormer.name}? This action cannot be undone.`,
+                                "Delete",
+                                "Cancel"
+                              );
+                              if (confirmed) {
+                                deleteDormerMutation.mutate(dormer.id);
+                              }
+                            }}
                             disabled={deleteDormerMutation.isPending}
                             data-testid={`button-delete-dormer-${dormer.id}`}
                             className="min-w-[2.5rem]"

@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { db, COLLECTIONS } from "@/lib/firebase";
 import { paymentsService } from "@/lib/firestoreService";
+import { notify, modal } from "@/lib/sweetAlert";
 import { collection, query, where, getDocs, orderBy, doc, getDoc } from "firebase/firestore";
 import { CreditCard, Calendar, DollarSign, AlertCircle, CheckCircle, Phone, User } from "lucide-react";
 import gcashQR from "@/assets/gcash-qr.png";
@@ -33,7 +33,6 @@ interface DormerData {
 
 export default function DormerBills() {
   const { user, isLoading: authLoading } = useFirebaseAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [dormerData, setDormerData] = useState<DormerData | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -65,21 +64,20 @@ export default function DormerBills() {
   const createPaymentMutation = useMutation({
     mutationFn: paymentsService.create,
     onSuccess: () => {
-      toast({
-        title: "Payment Completed",
-        description: "Your payment has been recorded successfully.",
-      });
+      notify.success(
+        "Payment Completed!",
+        "Your payment has been recorded successfully."
+      );
       queryClient.invalidateQueries({ queryKey: ['bills', dormerData?.id] });
       setPaymentModalOpen(false);
       setSelectedBill(null);
     },
     onError: (error) => {
       console.error('Error recording payment:', error);
-      toast({
-        title: "Error",
-        description: "Failed to record payment. Please try again.",
-        variant: "destructive",
-      });
+      notify.error(
+        "Payment Failed",
+        "Failed to record payment. Please try again."
+      );
     },
   });
 

@@ -9,9 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
 import { Calculator, Plus, Trash2, CheckCircle, Eye, Calendar, Zap, X } from "lucide-react";
 import { dormersService, billsService } from "@/lib/firestoreService";
+import { notify, modal } from "@/lib/sweetAlert";
 
 const billCalculatorSchema = z.object({
   startDate: z.string(),
@@ -32,7 +32,6 @@ interface BillCalculatorProps {
 }
 
 export default function BillCalculator({ userRole = "admin" }: BillCalculatorProps) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [people, setPeople] = useState([{ name: "", days: 1 }]);
   const [billResult, setBillResult] = useState<any>(null);
@@ -71,19 +70,18 @@ export default function BillCalculator({ userRole = "admin" }: BillCalculatorPro
       return bill;
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Bill calculation saved successfully",
-      });
+      notify.success(
+        "Bill Saved!",
+        "Bill calculation saved successfully"
+      );
       queryClient.invalidateQueries({ queryKey: ["bills"] });
       queryClient.invalidateQueries({ queryKey: ["analytics"] });
     },
     onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to save bill calculation",
-        variant: "destructive",
-      });
+      notify.error(
+        "Save Failed",
+        "Failed to save bill calculation"
+      );
     },
   });
 
@@ -100,19 +98,18 @@ export default function BillCalculator({ userRole = "admin" }: BillCalculatorPro
       return billsService.delete(billId);
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Bill deleted successfully!",
-      });
+      notify.success(
+        "Bill Deleted!",
+        "Bill deleted successfully!"
+      );
       queryClient.invalidateQueries({ queryKey: ["bills"] });
       queryClient.invalidateQueries({ queryKey: ["analytics"] });
     },
     onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to delete bill",
-        variant: "destructive",
-      });
+      notify.error(
+        "Delete Failed",
+        "Failed to delete bill"
+      );
     },
   });
 
@@ -196,11 +193,10 @@ export default function BillCalculator({ userRole = "admin" }: BillCalculatorPro
       setSelectedBill(billWithShares);
       setIsDetailsModalOpen(true);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load bill details",
-        variant: "destructive",
-      });
+      notify.error(
+        "Load Failed",
+        "Failed to load bill details"
+      );
     }
   };
 
@@ -521,7 +517,17 @@ export default function BillCalculator({ userRole = "admin" }: BillCalculatorPro
                           variant="outline"
                           size="sm"
                           className="px-2"
-                          onClick={() => deleteBillMutation.mutate(bill.id)}
+                          onClick={async () => {
+                            const confirmed = await modal.confirm(
+                              "Delete Bill?",
+                              `Are you sure you want to delete this ${bill.type} bill for ${formatBillMonth(bill.startDate, bill.endDate)}? This action cannot be undone.`,
+                              "Delete",
+                              "Cancel"
+                            );
+                            if (confirmed) {
+                              deleteBillMutation.mutate(bill.id);
+                            }
+                          }}
                           disabled={deleteBillMutation.isPending}
                         >
                           <X className="h-4 w-4" />

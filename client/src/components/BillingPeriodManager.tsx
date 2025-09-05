@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
 import { db, COLLECTIONS } from "@/lib/firebase";
+import { notify } from "@/lib/sweetAlert";
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { Calendar, Settings, History, Users, TrendingUp } from "lucide-react";
 
@@ -25,7 +25,6 @@ interface AttendanceSummary {
 }
 
 export default function BillingPeriodManager() {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [newPeriod, setNewPeriod] = useState<BillingPeriod>({ startDate: "", endDate: "" });
   const [showHistory, setShowHistory] = useState(false);
@@ -134,21 +133,20 @@ export default function BillingPeriodManager() {
       return period;
     },
     onSuccess: () => {
-      toast({
-        title: "Billing Period Updated",
-        description: "The new billing period has been set successfully. All users will see the updated dates.",
-      });
+      notify.success(
+        "Period Updated!",
+        "The new billing period has been set successfully. All users will see the updated dates."
+      );
       queryClient.invalidateQueries({ queryKey: ['billing-period'] });
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
       setNewPeriod({ startDate: "", endDate: "" });
     },
     onError: (error) => {
       console.error('Error updating billing period:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update billing period. Please try again.",
-        variant: "destructive",
-      });
+      notify.error(
+        "Update Failed",
+        "Failed to update billing period. Please try again."
+      );
     },
   });
 

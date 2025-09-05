@@ -5,8 +5,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { notify, modal } from "@/lib/sweetAlert";
 import { db, COLLECTIONS } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
 import { Calendar, CalendarCheck, CalendarX, Info, Clock, CheckCircle2, XCircle } from "lucide-react";
@@ -29,7 +29,6 @@ interface DormerData {
 }
 
 export default function DormerAttendance() {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isLoading: authLoading } = useFirebaseAuth();
   const [dormerData, setDormerData] = useState<DormerData | null>(null);
@@ -115,17 +114,16 @@ export default function DormerAttendance() {
           }
         } catch (error) {
           console.error("Error fetching dormer data:", error);
-          toast({
-            title: "Error",
-            description: "Failed to fetch your profile data",
-            variant: "destructive",
-          });
+          notify.error(
+            "Fetch Failed",
+            "Failed to fetch your profile data"
+          );
         }
       };
       
       fetchDormerData();
     }
-  }, [user, toast]);
+  }, [user]);
 
   const { data: attendance, isLoading } = useQuery({
     queryKey: ['attendance', dormerData?.id, billingPeriodStr],
@@ -174,11 +172,10 @@ export default function DormerAttendance() {
       console.error('Attendance update error:', error);
       // Revert optimistic update
       setOptimisticUpdates({});
-      toast({
-        title: "Error",
-        description: "Failed to update attendance. Please try again.",
-        variant: "destructive",
-      });
+      notify.error(
+        "Update Failed",
+        "Failed to update attendance. Please try again."
+      );
     },
   });
 

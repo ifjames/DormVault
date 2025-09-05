@@ -2,14 +2,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import logoUrl from "@assets/image_1756632409184.png";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { notify } from "@/lib/sweetAlert";
 import { useLocation } from "wouter";
 
 export default function Login() {
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState(localStorage.getItem('rememberedEmail') || "");
@@ -22,11 +21,10 @@ export default function Login() {
     e.preventDefault();
 
     if (!email || !password) {
-      toast({
-        title: "Validation Error",
-        description: "Please enter both email and password",
-        variant: "destructive",
-      });
+      notify.warning(
+        "Validation Error",
+        "Please enter both email and password"
+      );
       return;
     }
 
@@ -44,24 +42,22 @@ export default function Login() {
       }
 
       if (result.success) {
-        toast({
-          title: "Login Successful",
-          description: "Welcome back!",
-        });
+        notify.success(
+          "Welcome Back!",
+          "Login successful"
+        );
         setLocation('/');
       } else {
-        toast({
-          title: "Login Failed",
-          description: result.error || "Invalid credentials",
-          variant: "destructive",
-        });
+        notify.error(
+          "Login Failed",
+          result.error || "Invalid credentials"
+        );
       }
     } catch (error: any) {
-      toast({
-        title: "Login Failed",
-        description: error.message || "Invalid email or password.",
-        variant: "destructive",
-      });
+      notify.error(
+        "Login Failed",
+        error.message || "Invalid email or password."
+      );
     } finally {
       setIsLoading(false);
     }
