@@ -143,6 +143,12 @@
   z-index: 9999;
 }
 
+/* Ensure proper backdrop for modals */
+.swal2-backdrop-show {
+  background: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
 .swal-modern-notification {
   border-radius: 12px !important;
   border: none !important;
@@ -156,23 +162,31 @@
 }
 
 .swal-modern-notification.swal-success {
-  background: rgba(34, 197, 94, 0.95) !important;
-  color: white !important;
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  border-left: 4px solid #22c55e !important;
+  box-shadow: 0 8px 32px rgba(34, 197, 94, 0.15) !important;
 }
 
 .swal-modern-notification.swal-error {
-  background: rgba(239, 68, 68, 0.95) !important;
-  color: white !important;
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  border-left: 4px solid #ef4444 !important;
+  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.15) !important;
 }
 
 .swal-modern-notification.swal-warning {
-  background: rgba(245, 158, 11, 0.95) !important;
-  color: white !important;
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  border-left: 4px solid #f59e0b !important;
+  box-shadow: 0 8px 32px rgba(245, 158, 11, 0.15) !important;
 }
 
 .swal-modern-notification.swal-info {
-  background: rgba(59, 130, 246, 0.95) !important;
-  color: white !important;
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  border-left: 4px solid #3b82f6 !important;
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15) !important;
 }
 
 .swal-modern-notification .swal2-icon {
@@ -184,23 +198,23 @@
 }
 
 .swal-modern-notification .swal2-icon.swal2-success {
-  color: white !important;
+  color: #22c55e !important;
 }
 
 .swal-modern-notification .swal2-icon.swal2-error {
-  color: white !important;
+  color: #ef4444 !important;
 }
 
 .swal-modern-notification .swal2-icon.swal2-warning {
-  color: white !important;
+  color: #f59e0b !important;
 }
 
 .swal-modern-notification .swal2-icon.swal2-info {
-  color: white !important;
+  color: #3b82f6 !important;
 }
 
 .swal-modern-notification .swal-title {
-  color: white !important;
+  color: hsl(var(--card-foreground)) !important;
   font-size: 16px !important;
   font-weight: 600 !important;
   margin: 0 !important;
@@ -208,21 +222,21 @@
 }
 
 .swal-modern-notification .swal-text {
-  color: rgba(255, 255, 255, 0.9) !important;
+  color: hsl(var(--muted-foreground)) !important;
   font-size: 14px !important;
   margin: 4px 0 0 0 !important;
   line-height: 1.4 !important;
 }
 
 .swal-modern-notification .swal2-timer-progress-bar {
-  background: rgba(255, 255, 255, 0.3) !important;
+  background: hsl(var(--muted)) !important;
   height: 3px !important;
 }
 
 /* Modern SweetAlert2 Modal Styles */
 .swal-modern-modal {
   border-radius: 16px !important;
-  border: none !important;
+  border: 1px solid hsl(var(--border)) !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
   backdrop-filter: blur(10px) !important;
   background: hsl(var(--card)) !important;
@@ -230,6 +244,17 @@
   padding: 32px !important;
   max-width: 500px !important;
   width: 90% !important;
+}
+
+/* Fix SweetAlert2 question icon in light theme */
+.swal-modern-modal .swal2-icon.swal2-question {
+  border-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary)) !important;
+  background-color: transparent !important;
+}
+
+.swal-modern-modal .swal2-icon.swal2-question::before {
+  color: hsl(var(--primary)) !important;
 }
 
 .swal-modal-title {
