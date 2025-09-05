@@ -191,9 +191,16 @@ export default function DormerAttendance() {
     if (!billingPeriod) return [];
     
     const days = [];
-    const currentDate = new Date(billingPeriod.startDate);
+    // Handle both Date objects and string dates
+    const startDate = typeof billingPeriod.startDate === 'string' 
+      ? new Date(billingPeriod.startDate) 
+      : billingPeriod.startDate;
+    const endDate = typeof billingPeriod.endDate === 'string' 
+      ? new Date(billingPeriod.endDate) 
+      : billingPeriod.endDate;
+    const currentDate = new Date(startDate);
     
-    while (currentDate <= billingPeriod.endDate) {
+    while (currentDate <= endDate) {
       const dateStr = currentDate.toISOString().split('T')[0];
       const dayDate = new Date(currentDate);
       const today = new Date();
@@ -304,7 +311,16 @@ export default function DormerAttendance() {
           </div>
           <div className="flex items-center space-x-4">
             <Badge variant="outline" className="text-sm">
-              {monthNames[billingPeriod.startDate.getMonth()]} {billingPeriod.startDate.getDate()} - {monthNames[billingPeriod.endDate.getMonth()]} {billingPeriod.endDate.getDate()}, {billingPeriod.endDate.getFullYear()}
+              {(() => {
+                // Handle both Date objects and string dates
+                const startDate = typeof billingPeriod.startDate === 'string' 
+                  ? new Date(billingPeriod.startDate) 
+                  : billingPeriod.startDate;
+                const endDate = typeof billingPeriod.endDate === 'string' 
+                  ? new Date(billingPeriod.endDate) 
+                  : billingPeriod.endDate;
+                return `${monthNames[startDate.getMonth()]} ${startDate.getDate()} - ${monthNames[endDate.getMonth()]} ${endDate.getDate()}, ${endDate.getFullYear()}`;
+              })()} 
             </Badge>
             <div className="text-right">
               <div className="text-sm text-muted-foreground">Days Stayed:</div>
